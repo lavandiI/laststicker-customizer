@@ -1,6 +1,6 @@
 # Публикация LastSticker Search 1.5.0 в Chrome Web Store
 
-> Исторический чек-лист 1.5.0. Актуальный чек-лист — `store/submission-checklist-1.6.0.md`.
+> Исторический чек-лист 1.5.0. Актуальный чек-лист — `store/submission-checklist-1.6.1.md`.
 
 ## 0. Что уже готово
 
