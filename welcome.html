@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LastSticker Search — что нового</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <main class="welcome">
+      <header class="topbar">
+        <div class="brand">
+          <img src="icons/icon48.png" width="40" height="40" alt="" />
+          <div class="brand-copy">
+            <strong>LastSticker Search</strong>
+            <span id="versionLabel">1.6.1</span>
+          </div>
+        </div>
+        <button type="button" class="ghost" id="closeTop">Закрыть</button>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow" id="eyebrow">Обновление установлено</span>
+          <h1>
+            Что нового
+            <span class="accent" id="heroVersion">в 1.6.1</span>
+          </h1>
+          <p class="lead" id="lead">
+            Тёмная тема всего сайта, один выключатель для всего расширения
+            и этот экран — чтобы ничего не пропустить.
+          </p>
+          <div class="actions">
+            <button type="button" class="button primary" id="openSite">
+              Открыть LastSticker
+            </button>
+            <button type="button" class="button secondary" id="closeBottom">
+              Понятно
+            </button>
+          </div>
+          <p class="previous" id="previousLabel"></p>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <div class="browser">
+            <div class="browser-top">
+              <i></i><i></i><i></i><span></span>
+            </div>
+            <div class="browser-page">
+              <div class="line w70"></div>
+              <div class="line w42"></div>
+              <div class="post">
+                <div class="avatar"></div>
+                <div class="post-lines">
+                  <div class="line w80"></div>
+                  <div class="line w54"></div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-actions">
+                  <span class="pill primary">Индексировать</span>
+                  <span class="pill danger">Очистить</span>
+                </div>
+                <div class="panel-input"></div>
+                <div class="panel-result">
+                  <span class="line w64"></span>
+                  <mark>обмен</mark>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="popup-float">
+            <div class="popup-float-head">
+              <span class="power" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <path d="M12 3v9" />
+                  <path d="M6.3 6.3a8 8 0 1 0 11.4 0" />
+                </svg>
+              </span>
+              <span>Расширение</span>
+              <b>Вкл</b>
+            </div>
+            <div class="popup-float-sub">Поиск, панель и тема</div>
+            <span class="mini-switch" aria-hidden="true"><i></i></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="notice" id="disabledBanner" hidden>
+        <div>
+          <strong>Расширение сейчас выключено</strong>
+          <span>Включите его, чтобы вернуть панель поиска и тёмную тему.</span>
+        </div>
+        <button type="button" class="button primary" id="enableBtn">
+          Включить расширение
+        </button>
+      </section>
+
+      <section class="section" aria-labelledby="featuresTitle">
+        <div class="section-head">
+          <span class="eyebrow">Что изменилось</span>
+          <h2 id="featuresTitle">Коротко о главном</h2>
+        </div>
+
+        <div class="features">
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
+                <path d="M12 3v9" />
+                <path d="M6.3 6.3a8 8 0 1 0 11.4 0" />
+              </svg>
+            </span>
+            <h3>Один выключатель</h3>
+            <p>
+              Выключите расширение — исчезнут панель, индексация и тёмная тема.
+              Иконка в браузере станет чёрной.
+            </p>
+            <div class="icon-pair">
+              <img src="icons/icon32.png" width="32" height="32" alt="" />
+              <span>Вкл</span>
+              <img src="icons/black/icon32.png" width="32" height="32" alt="" />
+              <span>Выкл</span>
+            </div>
+          </article>
+
+          <article class="feature" id="themeFeature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z" />
+              </svg>
+            </span>
+            <h3>Тёмная тема</h3>
+            <p>
+              Весь сайт и панели поиска. Палитры «Графит» и «Чёрная», мягкое
+              приглушение изображений и живой предпросмотр.
+            </p>
+            <div class="swatches" aria-hidden="true">
+              <i class="swatch graphite"></i>
+              <i class="swatch black"></i>
+              <i class="swatch accent"></i>
+            </div>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z" />
+                <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
+              </svg>
+            </span>
+            <h3>Экран обновлений</h3>
+            <p>
+              После каждого обновления расширение один раз открывает эту
+              страницу — с новыми функциями и быстрым стартом.
+            </p>
+            <div class="mini-window" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section steps" aria-labelledby="stepsTitle">
+        <div class="section-head">
+          <span class="eyebrow">Быстрый старт</span>
+          <h2 id="stepsTitle">Три шага</h2>
+        </div>
+        <ol>
+          <li>
+            <b>01</b>
+            <strong>Нажмите на иконку</strong>
+            <span>Откроется компактная панель настроек.</span>
+          </li>
+          <li>
+            <b>02</b>
+            <strong>Включите тему</strong>
+            <span>Выберите палитру и приглушение изображений.</span>
+          </li>
+          <li>
+            <b>03</b>
+            <strong>Выключите всё</strong>
+            <span>Один переключатель убирает панель, тему и индексацию.</span>
+          </li>
+        </ol>
+      </section>
+
+      <footer class="footer">
+        <p>
+          Данные остаются в вашем браузере. Без аналитики и внешних запросов.
+        </p>
+        <span>LastSticker Search · <span id="footerVersion">1.6.1</span></span>
+      </footer>
+    </main>
+
+    <script src="welcome.js"></script>
+  </body>
+</html>

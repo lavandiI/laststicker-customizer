@@ -1,15 +1,24 @@
 {
   "manifest_version": 3,
   "name": "LastSticker Search",
-  "version": "1.5.0",
+  "version": "1.6.1",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
-  "permissions": ["storage", "scripting", "offscreen", "alarms"],
-  "host_permissions": ["*://laststicker.ru/*", "*://www.laststicker.ru/*"],
+  "permissions": [
+    "storage",
+    "scripting",
+    "offscreen",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://laststicker.ru/*",
+    "*://www.laststicker.ru/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
@@ -29,14 +38,41 @@
         "https://www.laststicker.ru/*",
         "http://www.laststicker.ru/*"
       ],
-      "js": ["content.js"],
+      "css": [
+        "theme.css"
+      ],
+      "js": [
+        "theme-core.js",
+        "theme-store.js",
+        "theme.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://laststicker.ru/*",
+        "http://laststicker.ru/*",
+        "https://www.laststicker.ru/*",
+        "http://www.laststicker.ru/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["inline-styles.css", "inline-panel.js", "inline-storage.js", "inline-ui.js"],
-      "matches": ["*://laststicker.ru/*", "*://www.laststicker.ru/*"]
+      "resources": [
+        "inline-styles.css",
+        "inline-panel.js",
+        "inline-storage.js",
+        "inline-ui.js"
+      ],
+      "matches": [
+        "*://laststicker.ru/*",
+        "*://www.laststicker.ru/*"
+      ]
     }
   ]
 }

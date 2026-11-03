@@ -12,32 +12,11 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'u
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
 if (manifest.version !== pkg.version) {
-  console.error(
-    `Version mismatch: manifest.json=${manifest.version}, package.json=${pkg.version}`,
-  );
+  console.error(`Version mismatch: manifest.json=${manifest.version}, package.json=${pkg.version}`);
   process.exit(1);
 }
 
-const files = [
-  'manifest.json',
-  'background.js',
-  'fetch-retry.js',
-  'parser.js',
-  'forum-parser.js',
-  'forum-storage.js',
-  'forum-indexer.js',
-  'indexer.js',
-  'offscreen.html',
-  'content.js',
-  'inline-panel.js',
-  'inline-storage.js',
-  'inline-ui.js',
-  'inline-styles.css',
-  'icons/icon16.png',
-  'icons/icon32.png',
-  'icons/icon48.png',
-  'icons/icon128.png',
-];
+const files = require('./runtime-files.js');
 
 const missing = files.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) {

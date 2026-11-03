@@ -28,6 +28,62 @@ async function fetchBatch(urls, concurrency = 10, processor = null) {
   return results;
 }
 
+let extensionEnabledState = true;
+let extensionEnableInitPromise = null;
+
+function setInlinePanelsVisible(visible) {
+  ['ls-search-panel', 'ls-talk-search-panel', 'ls-forum-panel'].forEach(
+    (id) => {
+      const panel = document.getElementById(id);
+      if (panel) panel.style.display = visible ? '' : 'none';
+    },
+  );
+}
+
+function handleExtensionEnabledChange(enabled) {
+  extensionEnabledState = enabled !== false;
+
+  if (!extensionEnabledState) {
+    setInlinePanelsVisible(false);
+    return;
+  }
+
+  if (window.InlinePanelReady) {
+    setInlinePanelsVisible(true);
+    return;
+  }
+
+  if (!extensionEnableInitPromise) {
+    extensionEnableInitPromise = initInlinePanel()
+      .then(() => {
+        if (extensionEnabledState) setInlinePanelsVisible(true);
+      })
+      .catch(() => {})
+      .finally(() => {
+        extensionEnableInitPromise = null;
+      });
+  }
+}
+
+function setupExtensionStateListener() {
+  if (isCommonJS) return;
+
+  if (chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message && message.action === 'extensionEnabledChanged') {
+        handleExtensionEnabledChange(message.enabled);
+      }
+    });
+  }
+
+  if (chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.isEnabled) return;
+      handleExtensionEnabledChange(changes.isEnabled.newValue !== false);
+    });
+  }
+}
+
 // Load inline-panel dependencies - delegate to background script
 async function loadInlineDependencies() {
   // Check if already loaded by background script
@@ -142,6 +198,8 @@ function waitForInlinePanel(attempt, maxAttempts, resolve, reject) {
 
 // Initialize inline panel when DOM is ready
 if (!isCommonJS) {
+  setupExtensionStateListener();
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initInlinePanel);
   } else {
