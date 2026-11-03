@@ -16,33 +16,7 @@ if (manifest.version !== pkg.version) {
   process.exit(1);
 }
 
-const files = [
-  'manifest.json',
-  'background.js',
-  'fetch-retry.js',
-  'parser.js',
-  'forum-parser.js',
-  'forum-storage.js',
-  'forum-indexer.js',
-  'indexer.js',
-  'offscreen.html',
-  'content.js',
-  'inline-panel.js',
-  'inline-storage.js',
-  'inline-ui.js',
-  'inline-styles.css',
-  'theme-core.js',
-  'theme-store.js',
-  'theme.js',
-  'theme.css',
-  'popup.html',
-  'popup.css',
-  'popup.js',
-  'icons/icon16.png',
-  'icons/icon32.png',
-  'icons/icon48.png',
-  'icons/icon128.png',
-];
+const files = require('./runtime-files.js');
 
 const missing = files.filter((file) => !fs.existsSync(path.join(root, file)));
 if (missing.length) {

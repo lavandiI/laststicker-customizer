@@ -8,7 +8,13 @@
   </head>
   <body>
     <header class="ls-popup-header">
-      <img class="ls-popup-icon" src="icons/icon32.png" alt="" width="28" height="28" />
+      <img
+        class="ls-popup-icon"
+        src="icons/icon32.png"
+        alt=""
+        width="28"
+        height="28"
+      />
       <div class="ls-popup-title">
         <h1>LastSticker Search</h1>
         <p>Оформление</p>
@@ -17,90 +23,157 @@
     </header>
 
     <main class="ls-popup-main">
-      <section class="ls-switch-row" aria-labelledby="themeSwitchTitle">
+      <section
+        class="ls-switch-row ls-master-row"
+        id="masterCard"
+        aria-labelledby="masterTitle"
+      >
+        <span class="ls-master-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3v9" />
+            <path d="M6.3 6.3a8 8 0 1 0 11.4 0" />
+          </svg>
+        </span>
         <div class="ls-switch-copy">
-          <span class="ls-switch-title" id="themeSwitchTitle">Тёмная тема</span>
-          <span class="ls-switch-hint">Весь сайт и панели поиска</span>
+          <span class="ls-switch-title" id="masterTitle">Расширение</span>
+          <span class="ls-switch-hint">Поиск, панель и тема</span>
         </div>
-        <span class="ls-switch-state" id="themeState" aria-live="polite">Выключена</span>
+        <span class="ls-switch-state" id="masterState" aria-live="polite"
+          >Включено</span
+        >
         <label class="ls-switch">
-          <input type="checkbox" id="themeEnabled" role="switch" aria-label="Тёмная тема" />
+          <input
+            type="checkbox"
+            id="extensionEnabled"
+            role="switch"
+            aria-label="Расширение включено"
+            checked
+          />
           <span class="ls-switch-track" aria-hidden="true">
             <span class="ls-switch-thumb"></span>
           </span>
         </label>
       </section>
 
-      <fieldset class="ls-field">
-        <legend>Палитра</legend>
-        <div class="ls-choice-grid">
-          <label class="ls-choice-card">
-            <input type="radio" name="palette" value="graphite" />
-            <span class="ls-choice-body">
-              <span class="ls-swatch ls-swatch--graphite" aria-hidden="true"></span>
-              <span>
-                <b>Графит</b>
-                <small>Мягкий тёмно-серый</small>
-              </span>
+      <p class="ls-disabled-note" id="disabledNote" hidden>
+        Включите расширение, чтобы менять оформление.
+      </p>
+
+      <div class="ls-section-label">Оформление</div>
+
+      <div class="ls-theme-settings" id="themeSettings">
+        <section class="ls-switch-row" aria-labelledby="themeSwitchTitle">
+          <div class="ls-switch-copy">
+            <span class="ls-switch-title" id="themeSwitchTitle"
+              >Тёмная тема</span
+            >
+            <span class="ls-switch-hint">Весь сайт и панели поиска</span>
+          </div>
+          <span class="ls-switch-state" id="themeState" aria-live="polite"
+            >Выключена</span
+          >
+          <label class="ls-switch">
+            <input
+              type="checkbox"
+              id="themeEnabled"
+              role="switch"
+              aria-label="Тёмная тема"
+            />
+            <span class="ls-switch-track" aria-hidden="true">
+              <span class="ls-switch-thumb"></span>
             </span>
           </label>
-          <label class="ls-choice-card">
-            <input type="radio" name="palette" value="black" />
-            <span class="ls-choice-body">
-              <span class="ls-swatch ls-swatch--black" aria-hidden="true"></span>
-              <span>
-                <b>Чёрная</b>
-                <small>Для OLED и ночи</small>
+        </section>
+
+        <fieldset class="ls-field">
+          <legend>Палитра</legend>
+          <div class="ls-choice-grid">
+            <label class="ls-choice-card">
+              <input type="radio" name="palette" value="graphite" />
+              <span class="ls-choice-body">
+                <span
+                  class="ls-swatch ls-swatch--graphite"
+                  aria-hidden="true"
+                ></span>
+                <span>
+                  <b>Графит</b>
+                  <small>Мягкий тёмно-серый</small>
+                </span>
               </span>
-            </span>
-          </label>
-        </div>
-      </fieldset>
+            </label>
+            <label class="ls-choice-card">
+              <input type="radio" name="palette" value="black" />
+              <span class="ls-choice-body">
+                <span class="ls-swatch ls-swatch--black" aria-hidden="true"></span>
+                <span>
+                  <b>Чёрная</b>
+                  <small>Для OLED и ночи</small>
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
-      <label class="ls-select-row" for="images">
-        <span>Изображения</span>
-        <select id="images">
-          <option value="off">Не приглушать</option>
-          <option value="soft">Слегка (–10%)</option>
-          <option value="strong">Заметно (–20%)</option>
-        </select>
-      </label>
+        <label class="ls-select-row" for="images">
+          <span>Изображения</span>
+          <select id="images">
+            <option value="off">Не приглушать</option>
+            <option value="soft">Слегка (–10%)</option>
+            <option value="strong">Заметно (–20%)</option>
+          </select>
+        </label>
 
-      <section class="ls-preview" aria-label="Предпросмотр">
-        <div class="ls-preview-column">
-          <div class="ls-preview-label">Сайт</div>
-          <div class="ls-preview-site" id="previewSite" data-images="off">
-            <div class="ls-preview-cover" aria-hidden="true"></div>
-            <div class="ls-preview-heading">Обмен наклейками Panini</div>
-            <div class="ls-preview-link">Все предложения →</div>
-            <div class="ls-preview-table">
-              <div class="ls-preview-row ls-preview-row--head">
-                <span>Лот</span><span>Цена</span>
+        <section class="ls-preview" aria-label="Предпросмотр">
+          <div class="ls-preview-column">
+            <div class="ls-preview-label">Сайт</div>
+            <div class="ls-preview-site" id="previewSite" data-images="off">
+              <div class="ls-preview-cover" aria-hidden="true"></div>
+              <div class="ls-preview-heading">Обмен наклейками Panini</div>
+              <div class="ls-preview-link">Все предложения →</div>
+              <div class="ls-preview-table">
+                <div class="ls-preview-row ls-preview-row--head">
+                  <span>Лот</span><span>Цена</span>
+                </div>
+                <div class="ls-preview-row">
+                  <span>Наклейки 1–50</span><span>1 200 ₽</span>
+                </div>
               </div>
-              <div class="ls-preview-row"><span>Наклейки 1–50</span><span>1 200 ₽</span></div>
+              <p class="ls-preview-text">
+                Ищу <mark class="ls-preview-mark">обмен</mark> на карточки NHL.
+              </p>
             </div>
-            <p class="ls-preview-text">
-              Ищу <mark class="ls-preview-mark">обмен</mark> на карточки NHL.
-            </p>
           </div>
-        </div>
 
-        <div class="ls-preview-column">
-          <div class="ls-preview-label">Панель</div>
-          <div class="ls-preview-panel" id="previewPanel">
-            <div class="ls-preview-input">Поиск по сообщениям…</div>
-            <div class="ls-preview-actions">
-              <span class="ls-preview-btn ls-preview-btn--primary">Индексировать</span>
-              <span class="ls-preview-btn ls-preview-btn--danger">Очистить</span>
+          <div class="ls-preview-column">
+            <div class="ls-preview-label">Панель</div>
+            <div class="ls-preview-panel" id="previewPanel">
+              <div class="ls-preview-input">Поиск по сообщениям…</div>
+              <div class="ls-preview-actions">
+                <span class="ls-preview-btn ls-preview-btn--primary"
+                  >Индексировать</span
+                >
+                <span class="ls-preview-btn ls-preview-btn--danger"
+                  >Очистить</span
+                >
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <footer class="ls-popup-footer">
       <div class="ls-footer-actions">
-        <button type="button" class="ls-reset" id="resetBtn">Сбросить настройки</button>
+        <button type="button" class="ls-reset" id="resetBtn">
+          Сбросить настройки
+        </button>
         <span class="ls-save-status" id="saveStatus" role="status" aria-live="polite"></span>
       </div>
       <p class="ls-privacy">

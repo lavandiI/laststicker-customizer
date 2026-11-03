@@ -4,6 +4,7 @@ const path = require('path');
 const core = require('../theme-core.js');
 
 let activeStore = null;
+let chromeMock = null;
 
 const storeProxy = {
   loadTheme: (...args) => activeStore.loadTheme(...args),
@@ -25,10 +26,54 @@ function createStoreMock(initial) {
   };
 }
 
+function createChromeMock(initial = {}) {
+  const data = { isEnabled: true, ...initial };
+  const listeners = [];
+
+  return {
+    storage: {
+      local: {
+        async get(keys) {
+          if (Array.isArray(keys)) {
+            const result = {};
+            keys.forEach((key) => {
+              result[key] = data[key];
+            });
+            return result;
+          }
+          if (typeof keys === 'string') return { [keys]: data[keys] };
+          return { ...data };
+        },
+        async set(values) {
+          Object.assign(data, values);
+        },
+      },
+      onChanged: {
+        addListener(listener) {
+          listeners.push(listener);
+        },
+        removeListener(listener) {
+          const index = listeners.indexOf(listener);
+          if (index >= 0) listeners.splice(index, 1);
+        },
+      },
+    },
+    data,
+    emit(changes) {
+      listeners.slice().forEach((listener) => listener(changes, 'local'));
+    },
+  };
+}
+
 function createPopupDocument() {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'popup.html'), 'utf8');
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'popup.html'),
+    'utf8',
+  );
   const bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
-  const body = bodyMatch ? bodyMatch[1].replace(/<script[\s\S]*?<\/script>/g, '') : '';
+  const body = bodyMatch
+    ? bodyMatch[1].replace(/<script[\s\S]*?<\/script>/g, '')
+    : '';
 
   const doc = document.implementation.createHTMLDocument('popup');
   doc.body.innerHTML = body;
@@ -57,46 +102,61 @@ describe('popup settings', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    chromeMock = createChromeMock();
+    global.chrome = chromeMock;
     activeStore = createStoreMock(core.DEFAULT_THEME);
   });
 
   afterEach(() => {
     jest.clearAllTimers();
     jest.useRealTimers();
+    delete global.chrome;
   });
 
-  test('renders the disabled theme by default', async () => {
+  test('renders the master switch on and the theme off by default', async () => {
     const doc = createPopupDocument();
     LSPopup.initPopup(doc);
     await flush();
 
+    expect(doc.getElementById('extensionEnabled').checked).toBe(true);
+    expect(doc.getElementById('masterState').textContent).toBe('Включено');
     expect(doc.getElementById('themeEnabled').checked).toBe(false);
     expect(doc.getElementById('themeState').textContent).toBe('Выключена');
-    expect(doc.querySelector('input[name="palette"][value="graphite"]').checked).toBe(true);
-    expect(doc.getElementById('images').value).toBe('off');
+    expect(doc.getElementById('disabledNote').hidden).toBe(true);
+    expect(
+      doc.getElementById('themeSettings').classList.contains('is-disabled'),
+    ).toBe(false);
+    expect(doc.getElementById('resetBtn').disabled).toBe(false);
     expect(doc.documentElement.dataset.lsTheme).toBe('light');
-    expect(doc.getElementById('previewSite').classList.contains('is-dark')).toBe(false);
-    expect(doc.getElementById('previewPanel').classList.contains('is-dark')).toBe(false);
   });
 
-  test('turns the dark theme on and saves it', async () => {
+  test('turns everything off when the master switch is disabled', async () => {
     const doc = createPopupDocument();
     LSPopup.initPopup(doc);
     await flush();
 
-    const toggle = doc.getElementById('themeEnabled');
-    toggle.checked = true;
-    change(toggle);
+    const master = doc.getElementById('extensionEnabled');
+    master.checked = false;
+    change(master);
     await flush();
 
-    expect(activeStore.getStored().enabled).toBe(true);
-    expect(doc.documentElement.dataset.lsTheme).toBe('dark');
-    expect(doc.getElementById('themeState').textContent).toBe('Включена');
-    expect(doc.getElementById('previewSite').classList.contains('is-dark')).toBe(true);
-    expect(doc.getElementById('previewPanel').classList.contains('is-dark')).toBe(true);
+    expect(chromeMock.data.isEnabled).toBe(false);
+    expect(doc.getElementById('masterState').textContent).toBe('Выключено');
+    expect(doc.getElementById('masterCard').classList.contains('is-on')).toBe(
+      false,
+    );
+    expect(doc.getElementById('themeState').textContent).toBe('Недоступна');
+    expect(doc.getElementById('themeEnabled').checked).toBe(false);
+    expect(doc.getElementById('themeEnabled').disabled).toBe(true);
+    expect(
+      doc.getElementById('themeSettings').classList.contains('is-disabled'),
+    ).toBe(true);
+    expect(doc.getElementById('disabledNote').hidden).toBe(false);
+    expect(doc.getElementById('resetBtn').disabled).toBe(true);
+    expect(doc.documentElement.dataset.lsTheme).toBe('light');
   });
 
-  test('turns the dark theme off again', async () => {
+  test('restores the saved theme when the master switch is enabled again', async () => {
     activeStore = createStoreMock({
       enabled: true,
       palette: 'graphite',
@@ -109,14 +169,37 @@ describe('popup settings', () => {
 
     expect(doc.documentElement.dataset.lsTheme).toBe('dark');
 
-    const toggle = doc.getElementById('themeEnabled');
-    toggle.checked = false;
-    change(toggle);
+    const master = doc.getElementById('extensionEnabled');
+    master.checked = false;
+    change(master);
     await flush();
 
-    expect(activeStore.getStored().enabled).toBe(false);
     expect(doc.documentElement.dataset.lsTheme).toBe('light');
-    expect(doc.getElementById('themeState').textContent).toBe('Выключена');
+
+    master.checked = true;
+    change(master);
+    await flush();
+
+    expect(chromeMock.data.isEnabled).toBe(true);
+    expect(doc.documentElement.dataset.lsTheme).toBe('dark');
+    expect(doc.getElementById('themeEnabled').checked).toBe(true);
+    expect(doc.getElementById('themeState').textContent).toBe('Включена');
+  });
+
+  test('turns the dark theme on and saves it', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const theme = doc.getElementById('themeEnabled');
+    theme.checked = true;
+    change(theme);
+    await flush();
+
+    expect(activeStore.getStored().enabled).toBe(true);
+    expect(doc.documentElement.dataset.lsTheme).toBe('dark');
+    expect(doc.getElementById('themeEnabled').checked).toBe(true);
+    expect(doc.getElementById('themeState').textContent).toBe('Включена');
   });
 
   test('switches to the black palette', async () => {
@@ -147,7 +230,7 @@ describe('popup settings', () => {
     expect(doc.getElementById('previewSite').dataset.images).toBe('strong');
   });
 
-  test('resets every setting', async () => {
+  test('resets every setting while the extension is enabled', async () => {
     activeStore = createStoreMock({
       enabled: true,
       palette: 'black',

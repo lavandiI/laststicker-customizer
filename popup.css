@@ -227,6 +227,92 @@ body {
   outline-offset: 2px;
 }
 
+/* ---------------------------------------------------------------- master switch */
+
+.ls-master-row {
+  gap: 9px;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.ls-master-row.is-on {
+  border-color: var(--popup-accent);
+  background: var(--popup-surface-2);
+  box-shadow: inset 0 0 0 1px var(--popup-accent);
+}
+
+.ls-master-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--popup-surface-2);
+  color: var(--popup-muted);
+}
+
+.ls-master-row.is-on .ls-master-icon {
+  background: rgba(36, 68, 188, 0.12);
+  color: var(--popup-accent);
+}
+
+html[data-ls-theme='dark'] .ls-master-row.is-on .ls-master-icon {
+  background: rgba(111, 140, 255, 0.16);
+}
+
+.ls-master-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ls-section-label {
+  margin: 2px 0 7px;
+  color: var(--popup-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ls-theme-settings {
+  transition: opacity 0.15s;
+}
+
+.ls-theme-settings.is-disabled {
+  opacity: 0.5;
+}
+
+.ls-theme-settings.is-disabled .ls-switch,
+.ls-theme-settings.is-disabled .ls-choice-card,
+.ls-theme-settings.is-disabled .ls-select-row,
+.ls-theme-settings.is-disabled .ls-preview {
+  pointer-events: none;
+}
+
+.ls-disabled-note {
+  margin: -5px 0 11px;
+  padding: 8px 10px;
+  border: 1px dashed var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-surface);
+  color: var(--popup-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.ls-disabled-note[hidden] {
+  display: none !important;
+}
+
+.ls-reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 /* ---------------------------------------------------------------- palette cards */
 
 .ls-choice-grid {

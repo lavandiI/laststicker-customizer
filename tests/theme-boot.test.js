@@ -5,8 +5,15 @@ function createChromeMock(initial = {}) {
   return {
     storage: {
       local: {
-        async get(key) {
-          if (typeof key === 'string') return { [key]: data[key] };
+        async get(keys) {
+          if (Array.isArray(keys)) {
+            const result = {};
+            keys.forEach((key) => {
+              result[key] = data[key];
+            });
+            return result;
+          }
+          if (typeof keys === 'string') return { [keys]: data[keys] };
           return { ...data };
         },
         async set(values) {
@@ -64,7 +71,10 @@ describe('theme boot', () => {
 
   test('applies the synchronous cache before storage resolves', async () => {
     const store = require('../theme-store.js');
-    store.writeThemeCache({ enabled: true, palette: 'black', images: 'soft' }, 'dark');
+    store.writeThemeCache(
+      { enabled: true, palette: 'black', images: 'soft' },
+      'dark',
+    );
 
     global.chrome = createChromeMock();
     loadThemeScript();
@@ -94,8 +104,10 @@ describe('theme boot', () => {
     expect(document.documentElement.dataset.lsScope).toBe('site');
   });
 
-  test('reacts to storage changes', async () => {
-    const chromeMock = createChromeMock();
+  test('reacts to theme and master storage changes', async () => {
+    const chromeMock = createChromeMock({
+      isEnabled: true,
+    });
     global.chrome = chromeMock;
     loadThemeScript();
     await flush();
@@ -104,23 +116,47 @@ describe('theme boot', () => {
 
     chromeMock.emit({
       ls_search_theme: {
-        newValue: { enabled: true, images: 'strong' },
+        newValue: { enabled: true, palette: 'black', images: 'strong' },
       },
     });
 
     expect(document.documentElement.dataset.lsTheme).toBe('dark');
     expect(document.documentElement.dataset.lsScope).toBe('site');
     expect(document.documentElement.dataset.lsImages).toBe('strong');
+
+    chromeMock.emit({
+      isEnabled: { newValue: false },
+    });
+
+    expect(document.documentElement.dataset.lsTheme).toBe('light');
+
+    chromeMock.emit({
+      isEnabled: { newValue: true },
+    });
+
+    expect(document.documentElement.dataset.lsTheme).toBe('dark');
   });
 
-  test('keeps the site light when the switch is off', async () => {
+  test('keeps the site light when the master switch is off', async () => {
     global.chrome = createChromeMock({
-      ls_search_theme: { enabled: false },
+      ls_search_theme: { enabled: true, palette: 'graphite', images: 'off' },
+      isEnabled: false,
     });
     loadThemeScript();
     await flush();
 
     expect(document.documentElement.dataset.lsTheme).toBe('light');
     expect(document.documentElement.dataset.lsScope).toBe('site');
+  });
+
+  test('keeps the site light when the theme switch is off', async () => {
+    global.chrome = createChromeMock({
+      ls_search_theme: { enabled: false },
+      isEnabled: true,
+    });
+    loadThemeScript();
+    await flush();
+
+    expect(document.documentElement.dataset.lsTheme).toBe('light');
   });
 });

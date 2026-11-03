@@ -29,6 +29,8 @@ const FULL_INDEX_KEY = 'ls_search_full_index_at';
 const LAST_INDEXED_KEY = 'ls_search_last_indexed_at';
 const AUTO_META_KEY = 'ls_search_auto_meta';
 const MESSAGES_KEY = 'ls_search_messages';
+const WELCOME_LAST_KEY = 'ls_welcome_last_version';
+const WELCOME_PENDING_KEY = 'ls_welcome_pending';
 
 let indexInProgress = false;
 let indexCancelRequested = false;
@@ -51,6 +53,16 @@ async function loadAndSetInitialState() {
     const result = await chrome.storage.local.get(STORAGE_KEY);
     const isEnabled = result[STORAGE_KEY] !== false;
     await setExtensionIcon(isEnabled);
+
+    if (!isEnabled) {
+      setBadgeText('');
+      try {
+        await chrome.alarms.clear(AUTO_ALARM);
+      } catch {
+        // Alarm cleanup is best-effort.
+      }
+    }
+
     console.log('[LS Search] Initial state loaded:', isEnabled ? 'enabled' : 'disabled');
     return isEnabled;
   } catch (e) {
@@ -69,22 +81,123 @@ async function isExtensionEnabled() {
   }
 }
 
-chrome.action.onClicked.addListener(async () => {
-  console.log('[LS Search] Extension icon clicked');
-  
+async function broadcastExtensionState(enabled) {
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY);
-    const currentState = result[STORAGE_KEY] !== false;
-    const newState = !currentState;
-    
-    await chrome.storage.local.set({ [STORAGE_KEY]: newState });
-    await setExtensionIcon(newState);
-    
-    console.log('[LS Search] State toggled:', newState ? 'enabled' : 'disabled');
-  } catch (e) {
-    console.error('[LS Search] Error toggling state:', e);
+    const tabs = await chrome.tabs.query({
+      url: ['*://laststicker.ru/*', '*://www.laststicker.ru/*'],
+    });
+
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        chrome.tabs.sendMessage(
+          tab.id,
+          { action: 'extensionEnabledChanged', enabled },
+          () => {
+            void chrome.runtime.lastError;
+          },
+        );
+      } catch {
+        // The tab may have been closed or may not have a content script.
+      }
+    }
+  } catch {
+    // Tab messaging is best-effort; the next page load still gets the state.
   }
-});
+}
+
+async function applyExtensionEnabled(enabled) {
+  await setExtensionIcon(enabled);
+
+  if (!enabled) {
+    setBadgeText('');
+    try {
+      await chrome.alarms.clear(AUTO_ALARM);
+    } catch {
+      // Alarm cleanup is best-effort.
+    }
+
+    indexCancelRequested = true;
+    if (activeJob) {
+      sendToOffscreen({ action: 'cancelIndex' }).catch(() => {});
+    }
+    if (activeForumJob) {
+      sendToOffscreen({ action: 'cancelForumIndex' }).catch(() => {});
+    }
+  } else {
+    await scheduleAutoAlarm();
+  }
+
+  await broadcastExtensionState(enabled);
+}
+
+async function setExtensionEnabled(enabled) {
+  await chrome.storage.local.set({ [STORAGE_KEY]: enabled });
+}
+
+function buildWelcomeUrl(version, previousVersion) {
+  return chrome.runtime.getURL(
+    `welcome.html?reason=update&version=${encodeURIComponent(
+      version,
+    )}&previous=${encodeURIComponent(previousVersion || '')}`,
+  );
+}
+
+async function openWelcomeTab(details) {
+  try {
+    const version = chrome.runtime.getManifest().version;
+    const previousVersion =
+      details && details.previousVersion ? details.previousVersion : '';
+    const data = await chrome.storage.local.get([
+      WELCOME_LAST_KEY,
+      WELCOME_PENDING_KEY,
+    ]);
+
+    if (data[WELCOME_LAST_KEY] === version) return;
+
+    try {
+      await chrome.tabs.create({
+        url: buildWelcomeUrl(version, previousVersion),
+      });
+      await chrome.storage.local.set({ [WELCOME_LAST_KEY]: version });
+      await chrome.storage.local.remove(WELCOME_PENDING_KEY);
+    } catch {
+      await chrome.storage.local.set({
+        [WELCOME_PENDING_KEY]: {
+          version,
+          previousVersion,
+          createdAt: Date.now(),
+        },
+      });
+    }
+  } catch (e) {
+    console.error('[LS Search] Error opening welcome page:', e);
+  }
+}
+
+async function openPendingWelcome() {
+  try {
+    const data = await chrome.storage.local.get([
+      WELCOME_PENDING_KEY,
+      WELCOME_LAST_KEY,
+    ]);
+    const pending = data[WELCOME_PENDING_KEY];
+    if (!pending || !pending.version) return;
+
+    if (data[WELCOME_LAST_KEY] === pending.version) {
+      await chrome.storage.local.remove(WELCOME_PENDING_KEY);
+      return;
+    }
+
+    await chrome.tabs.create({
+      url: buildWelcomeUrl(pending.version, pending.previousVersion),
+    });
+    await chrome.storage.local.set({ [WELCOME_LAST_KEY]: pending.version });
+    await chrome.storage.local.remove(WELCOME_PENDING_KEY);
+  } catch {
+    // Keep the pending marker so the next startup can retry.
+  }
+}
 
 loadAndSetInitialState();
 
@@ -221,6 +334,11 @@ async function getAutoState() {
 }
 
 async function scheduleAutoAlarm() {
+  if (!(await isExtensionEnabled())) {
+    chrome.alarms.clear(AUTO_ALARM);
+    return;
+  }
+
   const state = await getAutoState();
   if (state.enabled && state.full) {
     chrome.alarms.create(AUTO_ALARM, { periodInMinutes: AUTO_INTERVAL_MINUTES });
@@ -396,20 +514,49 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === 'update') {
+    await openWelcomeTab(details);
+  }
+
   await ensureFullIndexFlagRaw();
-  await scheduleAutoAlarm();
-  await runAutoIfDue();
+
+  if (await isExtensionEnabled()) {
+    await scheduleAutoAlarm();
+    await runAutoIfDue();
+  } else {
+    try {
+      await chrome.alarms.clear(AUTO_ALARM);
+    } catch {
+      // Alarm cleanup is best-effort.
+    }
+  }
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await openPendingWelcome();
   await ensureFullIndexFlagRaw();
-  await scheduleAutoAlarm();
-  await runAutoIfDue();
+
+  if (await isExtensionEnabled()) {
+    await scheduleAutoAlarm();
+    await runAutoIfDue();
+  } else {
+    try {
+      await chrome.alarms.clear(AUTO_ALARM);
+    } catch {
+      // Alarm cleanup is best-effort.
+    }
+  }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
+
+  if (changes[STORAGE_KEY]) {
+    const enabled = changes[STORAGE_KEY].newValue !== false;
+    void applyExtensionEnabled(enabled);
+  }
+
   if (changes[AUTO_ENABLED_KEY] || changes[FULL_INDEX_KEY]) {
     scheduleAutoAlarm();
   }
@@ -417,6 +564,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (!request || !request.action) return false;
+
+  if (request.action === 'setExtensionEnabled') {
+    (async () => {
+      try {
+        await setExtensionEnabled(request.enabled !== false);
+        sendResponse({
+          success: true,
+          enabled: request.enabled !== false,
+        });
+      } catch (e) {
+        sendResponse({ error: e.message });
+      }
+    })();
+    return true;
+  }
 
   if (request.target === 'background' && request.action === 'indexProgress') {
     if (activeJob && request.jobId === activeJob.jobId) {

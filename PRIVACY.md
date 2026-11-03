@@ -1,6 +1,6 @@
 # LastSticker Search — Privacy Policy / Политика конфиденциальности
 
-Effective date / Дата вступления в силу: 2026-11-01
+Effective date / Дата вступления в силу: 2026-11-03
 
 ## Русский
 
@@ -15,7 +15,7 @@ Effective date / Дата вступления в силу: 2026-11-01
 - URL страниц диалогов и тем;
 - названия тем, категории и метки форума;
 - последний поисковый запрос и время индексации;
-- настройки оформления: тема, палитра и приглушение изображений.
+- настройки оформления: тема, палитра, приглушение изображений и состояние выключателя расширения.
 
 Комментарии форума — публичный контент сайта. Расширение сохраняет их локально только для поиска и не публикует новые данные.
 
@@ -24,7 +24,7 @@ Effective date / Дата вступления в силу: 2026-11-01
 Данные сохраняются только локально в браузере пользователя:
 
 - индекс личных диалогов — в `chrome.storage.local`;
-- настройки оформления — в `chrome.storage.local`;
+- настройки оформления и состояние выключателя — в `chrome.storage.local`;
 - индекс форума — в IndexedDB расширения (`laststicker-search-forum`).
 
 При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц.
@@ -32,6 +32,8 @@ Effective date / Дата вступления в силу: 2026-11-01
 ### Как используются данные
 
 Только для отображения статистики, поиска по сообщениям и перехода к найденному сообщению. Данные не продаются, не передаются и не используются для рекламы. Расширение не использует аналитику, рекламу и собственные серверы.
+
+После обновления расширение может открыть локальную страницу «Что нового». Она не отправляет данные и не использует аналитику.
 
 ### Автообновление
 
@@ -82,7 +84,7 @@ Effective date / Дата вступления в силу: 2026-11-01
 - dialog and topic page URLs;
 - topic titles, categories, and forum tags;
 - the last search query and the last indexing time;
-- appearance settings: theme, palette, and image dimming.
+- appearance settings: theme, palette, image dimming, and the extension on/off state.
 
 Forum comments are public site content. The extension stores them locally only for search and does not publish new data.
 
@@ -91,7 +93,7 @@ Forum comments are public site content. The extension stores them locally only f
 Data is stored only locally in the user's browser:
 
 - the dialog index in `chrome.storage.local`;
-- appearance settings in `chrome.storage.local`;
+- appearance settings and the extension on/off state in `chrome.storage.local`;
 - the forum index in the extension's IndexedDB (`laststicker-search-forum`).
 
 When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers.
@@ -99,6 +101,8 @@ When upgrading from an older version, dialog data may be migrated from the site'
 ### How data is used
 
 Only to show statistics, search messages, and navigate to a found message. Data is not sold, shared, or used for advertising. The extension does not use analytics, advertising, or its own servers.
+
+After an update, the extension may open a local "What's new" page. It does not send data or use analytics.
 
 ### Automatic refresh
 
