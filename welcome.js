@@ -41,7 +41,7 @@
     } catch {
       // Fall through to the default below.
     }
-    return '1.6.1';
+    return '1.6.2';
   }
 
   async function loadState() {
@@ -160,9 +160,12 @@
     const previousLabel = doc.getElementById('previousLabel');
     const lead = doc.getElementById('lead');
     const themeFeature = doc.getElementById('themeFeature');
+    const scrollFeature = doc.getElementById('scrollFeature');
 
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
+    const fromBeforeScroll =
+      !previousVersion || compareVersions(previousVersion, '1.6.2') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -175,12 +178,20 @@
     }
 
     if (lead) {
-      lead.textContent = fromOldVersion
-        ? 'Тёмная тема всего сайта, один выключатель для всего расширения и этот экран — чтобы ничего не пропустить.'
-        : 'Один выключатель для всего расширения, чёрная иконка без поиска и этот экран — чтобы ничего не пропустить.';
+      if (fromOldVersion) {
+        lead.textContent =
+          'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else if (fromBeforeScroll) {
+        lead.textContent =
+          'Быстрая прокрутка в начало и в конец страницы и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else {
+        lead.textContent =
+          'Один выключатель для всего расширения, чёрная иконка без поиска и этот экран — чтобы ничего не пропустить.';
+      }
     }
 
     if (themeFeature) themeFeature.hidden = !fromOldVersion;
+    if (scrollFeature) scrollFeature.hidden = !fromBeforeScroll;
   }
 
   function initWelcome(doc, search) {

@@ -12,6 +12,8 @@ module.exports = [
   'indexer.js',
   'offscreen.html',
   'content.js',
+  'scroll-widget.js',
+  'scroll-widget.css',
   'inline-panel.js',
   'inline-storage.js',
   'inline-ui.js',

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LastSticker Search",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
   "permissions": [
@@ -39,7 +39,8 @@
         "http://www.laststicker.ru/*"
       ],
       "css": [
-        "theme.css"
+        "theme.css",
+        "scroll-widget.css"
       ],
       "js": [
         "theme-core.js",
@@ -56,6 +57,7 @@
         "http://www.laststicker.ru/*"
       ],
       "js": [
+        "scroll-widget.js",
         "content.js"
       ],
       "run_at": "document_idle"

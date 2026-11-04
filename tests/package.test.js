@@ -16,6 +16,12 @@ describe('runtime package', () => {
     );
   });
 
+  test('includes the scroll widget', () => {
+    expect(files).toEqual(
+      expect.arrayContaining(['scroll-widget.js', 'scroll-widget.css']),
+    );
+  });
+
   test('includes the welcome page', () => {
     expect(files).toEqual(
       expect.arrayContaining([

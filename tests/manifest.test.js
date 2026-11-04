@@ -28,6 +28,16 @@ describe('manifest', () => {
 
     expect(themeScript).toBeTruthy();
     expect(themeScript.css).toContain('theme.css');
+    expect(themeScript.css).toContain('scroll-widget.css');
     expect(themeScript.js).toEqual(['theme-core.js', 'theme-store.js', 'theme.js']);
+  });
+
+  test('injects the quick scroll widget on site pages', () => {
+    const contentScript = manifest.content_scripts.find((script) =>
+      script.js.includes('content.js'),
+    );
+
+    expect(contentScript).toBeTruthy();
+    expect(contentScript.js).toEqual(['scroll-widget.js', 'content.js']);
   });
 });
