@@ -6,6 +6,7 @@
   const isCommonJS = typeof module !== 'undefined' && module.exports;
   const WIDGET_ID = 'ls-scroll-widget';
   const STORAGE_KEY = 'isEnabled';
+  const SCROLL_KEY = 'ls_scroll_enabled';
   const MIN_SCROLLABLE = 80;
 
   const state = {
@@ -15,6 +16,7 @@
     upButton: null,
     downButton: null,
     enabled: true,
+    scrollEnabled: true,
     frame: 0,
     listenersBound: false,
     storageBound: false,
@@ -151,7 +153,8 @@
 
     const maxScroll = getMaxScroll(win, doc);
     const scrollTop = getScrollTop(win, doc);
-    const visible = state.enabled && maxScroll > MIN_SCROLLABLE;
+    const visible =
+      state.enabled && state.scrollEnabled && maxScroll > MIN_SCROLLABLE;
 
     state.widget.hidden = !visible;
     if (!visible) return;
@@ -188,21 +191,46 @@
       return;
     }
 
+    if (!state.scrollEnabled) {
+      removeScrollWidget();
+      return;
+    }
+
     createScrollWidget();
     updateScrollWidget();
   }
 
-  async function readEnabled() {
+  function setScrollEnabled(value) {
+    state.scrollEnabled = value !== false;
+
+    if (!state.scrollEnabled) {
+      removeScrollWidget();
+      return;
+    }
+
+    if (!state.enabled) return;
+
+    createScrollWidget();
+    updateScrollWidget();
+  }
+
+  async function readState() {
     const chromeApi = root.chrome;
     if (chromeApi && chromeApi.storage && chromeApi.storage.local) {
       try {
-        const data = await chromeApi.storage.local.get(STORAGE_KEY);
-        return !data || data[STORAGE_KEY] !== false;
+        const data = await chromeApi.storage.local.get([
+          STORAGE_KEY,
+          SCROLL_KEY,
+        ]);
+        return {
+          enabled: !data || data[STORAGE_KEY] !== false,
+          scrollEnabled: !data || data[SCROLL_KEY] !== false,
+        };
       } catch {
-        // Fall through to the enabled default.
+        // Fall through to the enabled defaults.
       }
     }
-    return true;
+    return { enabled: true, scrollEnabled: true };
   }
 
   function bindWindow(win) {
@@ -222,8 +250,13 @@
 
     if (chromeApi.storage && chromeApi.storage.onChanged) {
       chromeApi.storage.onChanged.addListener(function onStorageChanged(changes, area) {
-        if (area !== 'local' || !changes[STORAGE_KEY]) return;
-        setExtensionEnabled(changes[STORAGE_KEY].newValue !== false);
+        if (area !== 'local') return;
+        if (changes[STORAGE_KEY]) {
+          setExtensionEnabled(changes[STORAGE_KEY].newValue !== false);
+        }
+        if (changes[SCROLL_KEY]) {
+          setScrollEnabled(changes[SCROLL_KEY].newValue !== false);
+        }
       });
     }
 
@@ -261,15 +294,19 @@
     state.window = doc.defaultView || root;
     bindWindow(state.window);
     bindStorage();
-    setExtensionEnabled(await readEnabled());
+    const stored = await readState();
+    state.scrollEnabled = stored.scrollEnabled;
+    setExtensionEnabled(stored.enabled);
   }
 
   const api = {
     WIDGET_ID,
+    SCROLL_KEY,
     createScrollWidget,
     removeScrollWidget,
     updateScrollWidget,
     setExtensionEnabled,
+    setScrollEnabled,
     initScrollWidget,
     scrollToTop,
     scrollToBottom,

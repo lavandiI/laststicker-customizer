@@ -13,9 +13,11 @@
   if (!core || !store) return;
 
   const MASTER_KEY = 'isEnabled';
+  const SCROLL_KEY = 'ls_scroll_enabled';
 
   let current = core.normalizeTheme(null);
   let masterEnabled = true;
+  let scrollEnabled = true;
   let saveTimer = null;
   let saveQueue = Promise.resolve();
 
@@ -51,6 +53,25 @@
     if (!storage) return;
 
     await storage.set({ [MASTER_KEY]: enabled });
+  }
+
+  async function loadScrollEnabled() {
+    const storage = chromeStorage();
+    if (!storage) return true;
+
+    try {
+      const data = await storage.get(SCROLL_KEY);
+      return data[SCROLL_KEY] !== false;
+    } catch {
+      return true;
+    }
+  }
+
+  async function saveScrollEnabled(enabled) {
+    const storage = chromeStorage();
+    if (!storage) return;
+
+    await storage.set({ [SCROLL_KEY]: enabled });
   }
 
   function onMasterChanged(callback) {
@@ -98,9 +119,15 @@
     if (reset) reset.disabled = !enabled;
   }
 
-  function render(doc, theme, enabled) {
+  function syncScrollControls(doc, enabled) {
+    const toggle = byId(doc, 'scrollEnabled');
+    if (toggle) toggle.disabled = !enabled;
+  }
+
+  function render(doc, theme, enabled, scroll) {
     current = core.normalizeTheme(theme);
     masterEnabled = enabled !== false;
+    scrollEnabled = scroll !== false;
 
     const masterToggle = byId(doc, 'extensionEnabled');
     if (masterToggle) masterToggle.checked = masterEnabled;
@@ -113,6 +140,23 @@
 
     const masterCard = byId(doc, 'masterCard');
     if (masterCard) masterCard.classList.toggle('is-on', masterEnabled);
+
+    const scrollToggle = byId(doc, 'scrollEnabled');
+    if (scrollToggle) {
+      scrollToggle.checked = masterEnabled ? scrollEnabled : false;
+    }
+
+    const scrollState = byId(doc, 'scrollState');
+    if (scrollState) {
+      scrollState.textContent = masterEnabled
+        ? scrollEnabled
+          ? 'Включена'
+          : 'Выключена'
+        : 'Недоступна';
+      scrollState.classList.toggle('is-on', masterEnabled && scrollEnabled);
+    }
+
+    syncScrollControls(doc, masterEnabled);
 
     const themeToggle = byId(doc, 'themeEnabled');
     if (themeToggle) {
@@ -176,8 +220,21 @@
     return enqueue(async function () {
       try {
         const next = await store.saveTheme(partial);
-        render(doc, next, masterEnabled);
+        render(doc, next, masterEnabled, scrollEnabled);
         showSaved(doc, statusText);
+      } catch {
+        showSaved(doc, 'Не удалось сохранить');
+      }
+    });
+  }
+
+  function updateScroll(doc, enabled) {
+    return enqueue(async function () {
+      try {
+        await saveScrollEnabled(enabled);
+        scrollEnabled = enabled;
+        render(doc, current, masterEnabled, enabled);
+        showSaved(doc, enabled ? 'Прокрутка включена' : 'Прокрутка выключена');
       } catch {
         showSaved(doc, 'Не удалось сохранить');
       }
@@ -189,7 +246,7 @@
       try {
         await saveMasterEnabled(enabled);
         masterEnabled = enabled;
-        render(doc, current, enabled);
+        render(doc, current, enabled, scrollEnabled);
         showSaved(doc, enabled ? 'Расширение включено' : 'Выключено');
 
         if (
@@ -230,12 +287,16 @@
       }
     }
 
-    Promise.all([store.loadTheme(), loadMasterEnabled()])
-      .then(([theme, enabled]) => {
-        render(document, theme, enabled);
+    Promise.all([
+      store.loadTheme(),
+      loadMasterEnabled(),
+      loadScrollEnabled(),
+    ])
+      .then(([theme, enabled, scroll]) => {
+        render(document, theme, enabled, scroll);
       })
       .catch(() => {
-        render(document, core.DEFAULT_THEME, true);
+        render(document, core.DEFAULT_THEME, true, true);
       });
 
     document.addEventListener('change', function (event) {
@@ -248,6 +309,11 @@
       }
 
       if (!masterEnabled) return;
+
+      if (target.id === 'scrollEnabled') {
+        updateScroll(document, target.checked);
+        return;
+      }
 
       if (target.id === 'themeEnabled') {
         updateTheme(document, { enabled: target.checked });
@@ -273,11 +339,11 @@
     }
 
     store.onThemeChanged(function (theme) {
-      render(document, theme, masterEnabled);
+      render(document, theme, masterEnabled, scrollEnabled);
     });
 
     onMasterChanged(function (enabled) {
-      render(document, current, enabled);
+      render(document, current, enabled, scrollEnabled);
     });
 
     return { render };

@@ -41,7 +41,7 @@
     } catch {
       // Fall through to the default below.
     }
-    return '1.6.2';
+    return '1.6.3';
   }
 
   async function loadState() {
@@ -165,7 +165,7 @@
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
     const fromBeforeScroll =
-      !previousVersion || compareVersions(previousVersion, '1.6.2') < 0;
+      !previousVersion || compareVersions(previousVersion, '1.6.3') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -183,7 +183,7 @@
           'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
       } else if (fromBeforeScroll) {
         lead.textContent =
-          'Быстрая прокрутка в начало и в конец страницы и один выключатель для всего расширения — чтобы ничего не пропустить.';
+          'Быстрая прокрутка страницы с возможностью отключить её в настройках и один выключатель для всего расширения — чтобы ничего не пропустить.';
       } else {
         lead.textContent =
           'Один выключатель для всего расширения, чёрная иконка без поиска и этот экран — чтобы ничего не пропустить.';

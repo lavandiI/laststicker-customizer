@@ -66,6 +66,32 @@
         Включите расширение, чтобы менять оформление.
       </p>
 
+      <div class="ls-section-label">Сайт</div>
+
+      <section class="ls-switch-row" aria-labelledby="scrollSwitchTitle">
+        <div class="ls-switch-copy">
+          <span class="ls-switch-title" id="scrollSwitchTitle"
+            >Быстрая прокрутка</span
+          >
+          <span class="ls-switch-hint">Кнопки ↑ и ↓ справа снизу</span>
+        </div>
+        <span class="ls-switch-state" id="scrollState" aria-live="polite"
+          >Включена</span
+        >
+        <label class="ls-switch">
+          <input
+            type="checkbox"
+            id="scrollEnabled"
+            role="switch"
+            aria-label="Быстрая прокрутка"
+            checked
+          />
+          <span class="ls-switch-track" aria-hidden="true">
+            <span class="ls-switch-thumb"></span>
+          </span>
+        </label>
+      </section>
+
       <div class="ls-section-label">Оформление</div>
 
       <div class="ls-theme-settings" id="themeSettings">

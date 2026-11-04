@@ -23,8 +23,15 @@ function createChromeMock(initial = {}) {
   return {
     storage: {
       local: {
-        async get(key) {
-          return { [key]: data[key] };
+        async get(keys) {
+          if (Array.isArray(keys)) {
+            const result = {};
+            keys.forEach((key) => {
+              result[key] = data[key];
+            });
+            return result;
+          }
+          return { [keys]: data[keys] };
         },
       },
       onChanged: {
@@ -160,6 +167,50 @@ describe('scroll widget', () => {
     expect(document.getElementById('ls-scroll-widget')).toBeNull();
 
     widget.setExtensionEnabled(true);
+    expect(document.getElementById('ls-scroll-widget')).toBeTruthy();
+  });
+
+  test('removes the rail when scrolling is disabled and restores it', () => {
+    const widget = require('../scroll-widget.js');
+    widget.createScrollWidget();
+
+    widget.setScrollEnabled(false);
+    expect(document.getElementById('ls-scroll-widget')).toBeNull();
+
+    widget.setScrollEnabled(true);
+    expect(document.getElementById('ls-scroll-widget')).toBeTruthy();
+  });
+
+  test('reads the scroll setting and reacts to storage changes', async () => {
+    const chromeMock = createChromeMock({ ls_scroll_enabled: false });
+    global.chrome = chromeMock;
+
+    const widget = require('../scroll-widget.js');
+    await widget.initScrollWidget();
+
+    expect(document.getElementById('ls-scroll-widget')).toBeNull();
+
+    chromeMock.emitStorage({ ls_scroll_enabled: { newValue: true } });
+    expect(document.getElementById('ls-scroll-widget')).toBeTruthy();
+
+    chromeMock.emitStorage({ ls_scroll_enabled: { newValue: false } });
+    expect(document.getElementById('ls-scroll-widget')).toBeNull();
+  });
+
+  test('does not restore the rail while scrolling stays disabled', async () => {
+    const chromeMock = createChromeMock({
+      isEnabled: false,
+      ls_scroll_enabled: false,
+    });
+    global.chrome = chromeMock;
+
+    const widget = require('../scroll-widget.js');
+    await widget.initScrollWidget();
+
+    chromeMock.emitStorage({ isEnabled: { newValue: true } });
+    expect(document.getElementById('ls-scroll-widget')).toBeNull();
+
+    chromeMock.emitStorage({ ls_scroll_enabled: { newValue: true } });
     expect(document.getElementById('ls-scroll-widget')).toBeTruthy();
   });
 

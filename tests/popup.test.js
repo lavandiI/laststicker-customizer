@@ -249,4 +249,60 @@ describe('popup settings', () => {
     expect(doc.getElementById('themeEnabled').checked).toBe(false);
     expect(doc.getElementById('saveStatus').textContent).toBe('Сброшено');
   });
+
+  test('keeps quick scroll on by default', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    expect(doc.getElementById('scrollEnabled').checked).toBe(true);
+    expect(doc.getElementById('scrollState').textContent).toBe('Включена');
+  });
+
+  test('turns quick scroll off and on', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const scroll = doc.getElementById('scrollEnabled');
+    scroll.checked = false;
+    change(scroll);
+    await flush();
+
+    expect(chromeMock.data.ls_scroll_enabled).toBe(false);
+    expect(doc.getElementById('scrollState').textContent).toBe('Выключена');
+
+    scroll.checked = true;
+    change(scroll);
+    await flush();
+
+    expect(chromeMock.data.ls_scroll_enabled).toBe(true);
+    expect(doc.getElementById('scrollState').textContent).toBe('Включена');
+  });
+
+  test('reads a stored quick scroll setting', async () => {
+    chromeMock = createChromeMock({ ls_scroll_enabled: false });
+    global.chrome = chromeMock;
+
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    expect(doc.getElementById('scrollEnabled').checked).toBe(false);
+    expect(doc.getElementById('scrollState').textContent).toBe('Выключена');
+  });
+
+  test('disables quick scroll control when the extension is off', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const master = doc.getElementById('extensionEnabled');
+    master.checked = false;
+    change(master);
+    await flush();
+
+    expect(doc.getElementById('scrollEnabled').disabled).toBe(true);
+    expect(doc.getElementById('scrollState').textContent).toBe('Недоступна');
+  });
 });

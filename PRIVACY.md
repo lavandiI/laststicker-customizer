@@ -1,6 +1,6 @@
 # LastSticker Search — Privacy Policy / Политика конфиденциальности
 
-Effective date / Дата вступления в силу: 2026-11-03
+Effective date / Дата вступления в силу: 2026-11-05
 
 ## Русский
 
@@ -15,7 +15,7 @@ Effective date / Дата вступления в силу: 2026-11-03
 - URL страниц диалогов и тем;
 - названия тем, категории и метки форума;
 - последний поисковый запрос и время индексации;
-- настройки оформления: тема, палитра, приглушение изображений и состояние выключателя расширения.
+- настройки оформления: тема, палитра, приглушение изображений, состояние выключателя расширения и настройка быстрой прокрутки.
 
 Комментарии форума — публичный контент сайта. Расширение сохраняет их локально только для поиска и не публикует новые данные.
 
@@ -24,7 +24,7 @@ Effective date / Дата вступления в силу: 2026-11-03
 Данные сохраняются только локально в браузере пользователя:
 
 - индекс личных диалогов — в `chrome.storage.local`;
-- настройки оформления и состояние выключателя — в `chrome.storage.local`;
+- настройки оформления, состояние выключателя и настройка быстрой прокрутки — в `chrome.storage.local`;
 - индекс форума — в IndexedDB расширения (`laststicker-search-forum`).
 
 При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц.
@@ -84,7 +84,7 @@ Effective date / Дата вступления в силу: 2026-11-03
 - dialog and topic page URLs;
 - topic titles, categories, and forum tags;
 - the last search query and the last indexing time;
-- appearance settings: theme, palette, image dimming, and the extension on/off state.
+- appearance settings: theme, palette, image dimming, the extension on/off state, and the quick-scroll setting.
 
 Forum comments are public site content. The extension stores them locally only for search and does not publish new data.
 
@@ -93,7 +93,7 @@ Forum comments are public site content. The extension stores them locally only f
 Data is stored only locally in the user's browser:
 
 - the dialog index in `chrome.storage.local`;
-- appearance settings and the extension on/off state in `chrome.storage.local`;
+- appearance settings, the extension on/off state, and the quick-scroll setting in `chrome.storage.local`;
 - the forum index in the extension's IndexedDB (`laststicker-search-forum`).
 
 When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers.
