@@ -1,6 +1,6 @@
 # LastSticker Search — Privacy Policy / Политика конфиденциальности
 
-Effective date / Дата вступления в силу: 2026-11-03
+Effective date / Дата вступления в силу: 2026-11-05
 
 ## Русский
 
@@ -15,7 +15,8 @@ Effective date / Дата вступления в силу: 2026-11-03
 - URL страниц диалогов и тем;
 - названия тем, категории и метки форума;
 - последний поисковый запрос и время индексации;
-- настройки оформления: тема, палитра, приглушение изображений и состояние выключателя расширения.
+- настройки оформления: тема, палитра, приглушение изображений и состояние выключателя расширения;
+- трек-номера, которые пользователь явно открывает для просмотра маршрута.
 
 Комментарии форума — публичный контент сайта. Расширение сохраняет их локально только для поиска и не публикует новые данные.
 
@@ -24,14 +25,16 @@ Effective date / Дата вступления в силу: 2026-11-03
 Данные сохраняются только локально в браузере пользователя:
 
 - индекс личных диалогов — в `chrome.storage.local`;
-- настройки оформления и состояние выключателя — в `chrome.storage.local`;
+- настройки оформления, состояние выключателя и кэш маршрутов — в `chrome.storage.local`;
 - индекс форума — в IndexedDB расширения (`laststicker-search-forum`).
 
-При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц.
+При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц. Трек-номер отправляется на сайт Почты России или Белпочты только по клику пользователя.
 
 ### Как используются данные
 
 Только для отображения статистики, поиска по сообщениям и перехода к найденному сообщению. Данные не продаются, не передаются и не используются для рекламы. Расширение не использует аналитику, рекламу и собственные серверы.
+
+Для показа маршрута трек-номер отправляется на сайт Почты России или Белпочты только после клика по номеру в сообщении. Результат кэшируется локально на 30 минут.
 
 После обновления расширение может открыть локальную страницу «Что нового». Она не отправляет данные и не использует аналитику.
 
@@ -84,7 +87,8 @@ Effective date / Дата вступления в силу: 2026-11-03
 - dialog and topic page URLs;
 - topic titles, categories, and forum tags;
 - the last search query and the last indexing time;
-- appearance settings: theme, palette, image dimming, and the extension on/off state.
+- appearance settings: theme, palette, image dimming, and the extension on/off state;
+- tracking numbers the user explicitly opens to view a route.
 
 Forum comments are public site content. The extension stores them locally only for search and does not publish new data.
 
@@ -93,14 +97,16 @@ Forum comments are public site content. The extension stores them locally only f
 Data is stored only locally in the user's browser:
 
 - the dialog index in `chrome.storage.local`;
-- appearance settings and the extension on/off state in `chrome.storage.local`;
+- appearance settings, the extension on/off state, and the route cache in `chrome.storage.local`;
 - the forum index in the extension's IndexedDB (`laststicker-search-forum`).
 
-When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers.
+When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers. A tracking number is sent to Russian Post or Belpost only after the user clicks it.
 
 ### How data is used
 
 Only to show statistics, search messages, and navigate to a found message. Data is not sold, shared, or used for advertising. The extension does not use analytics, advertising, or its own servers.
+
+To show a route, a tracking number is sent to Russian Post or Belpost only after the user clicks it in a message. The result is cached locally for 30 minutes.
 
 After an update, the extension may open a local "What's new" page. It does not send data or use analytics.
 
@@ -120,7 +126,8 @@ The extension works only on `laststicker.ru` and `www.laststicker.ru`. It reads 
 - `scripting` - inject the search panel and parser into `laststicker.ru` pages;
 - `offscreen` - local HTML parsing without an open tab;
 - `alarms` - periodic automatic refresh;
-- host permissions - access only `laststicker.ru` and `www.laststicker.ru`.
+- host permissions - access only `laststicker.ru` and `www.laststicker.ru`;
+- optional host permissions for `www.pochta.ru` and `api.belpost.by` - requested only when route display is enabled.
 
 The extension does not request access to browsing history and does not read tabs on other sites.
 

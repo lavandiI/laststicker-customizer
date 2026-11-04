@@ -29,15 +29,34 @@ describe('manifest', () => {
     expect(themeScript).toBeTruthy();
     expect(themeScript.css).toContain('theme.css');
     expect(themeScript.css).toContain('scroll-widget.css');
+    expect(themeScript.css).toContain('tracking.css');
     expect(themeScript.js).toEqual(['theme-core.js', 'theme-store.js', 'theme.js']);
   });
 
-  test('injects the quick scroll widget on site pages', () => {
+  test('injects the quick scroll widget and tracking scripts on site pages', () => {
     const contentScript = manifest.content_scripts.find((script) =>
       script.js.includes('content.js'),
     );
 
     expect(contentScript).toBeTruthy();
-    expect(contentScript.js).toEqual(['scroll-widget.js', 'content.js']);
+    expect(contentScript.js).toEqual([
+      'scroll-widget.js',
+      'tracking-core.js',
+      'tracking.js',
+      'content.js',
+    ]);
+  });
+
+  test('requests tracking hosts only as optional permissions', () => {
+    expect(manifest.optional_host_permissions).toEqual([
+      'https://www.pochta.ru/*',
+      'https://api.belpost.by/*',
+    ]);
+    expect(manifest.host_permissions).not.toContain(
+      'https://www.pochta.ru/*',
+    );
+    expect(manifest.host_permissions).not.toContain(
+      'https://api.belpost.by/*',
+    );
   });
 });

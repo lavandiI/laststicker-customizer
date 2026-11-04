@@ -1,6 +1,6 @@
 # Публикация LastSticker Search 1.6.1 в Chrome Web Store
 
-> 1.6.1 опубликована. Актуальный чек-лист — `store/submission-checklist-1.6.2.md`.
+> 1.6.1 опубликована. Актуальный чек-лист — `store/submission-checklist-1.7.0.md`.
 
 ## 0. Что уже готово
 

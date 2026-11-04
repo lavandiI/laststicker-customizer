@@ -1,0 +1,290 @@
+/* Tracking links and route cards on laststicker.ru pages. */
+
+a.ls-track-link,
+a.ls-track-link:link,
+a.ls-track-link:visited {
+  color: #06c;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+a.ls-track-link:hover,
+a.ls-track-link:focus {
+  color: #c00;
+  text-decoration: none;
+}
+
+a.ls-track-link:focus-visible {
+  outline: 2px solid #2444bc;
+  outline-offset: 2px;
+}
+
+.ls-track-card {
+  margin: 10px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #d7e0ff;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #333333;
+  font:
+    12px/1.45 Arial,
+    Helvetica,
+    sans-serif;
+  box-shadow: 0 1px 2px rgba(36, 68, 188, 0.06);
+}
+
+.ls-track-card[hidden] {
+  display: none !important;
+}
+
+.ls-track-card * {
+  box-sizing: border-box;
+}
+
+.ls-track-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ls-track-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ls-track-card__operator {
+  color: #2444bc;
+  font-weight: 700;
+}
+
+.ls-track-card__number {
+  color: #666666;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.ls-track-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.ls-track-card__refresh,
+.ls-track-card__close {
+  margin: 0;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: #d7e0ff;
+  color: #2444bc;
+  font:
+    11px/1.3 Arial,
+    Helvetica,
+    sans-serif;
+  cursor: pointer;
+}
+
+.ls-track-card__refresh:hover,
+.ls-track-card__close:hover {
+  background: #c6d2f7;
+}
+
+.ls-track-card__refresh:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ls-track-card__close {
+  padding: 1px 6px 2px;
+  font-size: 15px;
+  line-height: 1;
+  background: transparent;
+}
+
+.ls-track-card__close:hover {
+  background: #d7e0ff;
+}
+
+.ls-track-card__site,
+.ls-track-card__site:link,
+.ls-track-card__site:visited {
+  color: #06c;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
+.ls-track-card__site:hover {
+  color: #c00;
+  text-decoration: none;
+}
+
+.ls-track-card__status {
+  margin-top: 9px;
+  color: #1a3373;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ls-track-card.is-loading .ls-track-card__status {
+  color: #666666;
+  font-weight: normal;
+}
+
+.ls-track-card__timeline {
+  margin: 10px 0 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid #d7e0ff;
+  list-style: none;
+}
+
+.ls-track-card__event-item {
+  position: relative;
+  margin: 0 0 10px;
+  padding-left: 2px;
+}
+
+.ls-track-card__event-item:last-child {
+  margin-bottom: 0;
+}
+
+.ls-track-card__event-item::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: -19px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2444bc;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.ls-track-card__event-item.is-planned::before {
+  background: #c2a12b;
+}
+
+.ls-track-card__date {
+  display: block;
+  color: #666666;
+  font-size: 10px;
+}
+
+.ls-track-card__event {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ls-track-card__place {
+  display: block;
+  color: #666666;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.ls-track-card__empty {
+  color: #666666;
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------- dark theme */
+
+html[data-ls-theme='dark'][data-ls-scope='site'] a.ls-track-link,
+html[data-ls-theme='dark'][data-ls-scope='site'] a.ls-track-link:link,
+html[data-ls-theme='dark'][data-ls-scope='site'] a.ls-track-link:visited {
+  color: var(--ls-link, #82aaff);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] a.ls-track-link:hover,
+html[data-ls-theme='dark'][data-ls-scope='site'] a.ls-track-link:focus {
+  color: var(--ls-link-hover, #ff8a7a);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card {
+  border-color: var(--ls-border, #333b47);
+  background: var(--ls-surface, #171b22);
+  color: var(--ls-text, #e7ebf2);
+  box-shadow: none;
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__operator {
+  color: var(--ls-link, #82aaff);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__number,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__date,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__place,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__empty {
+  color: var(--ls-muted, #9aa4b3);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__status {
+  color: var(--ls-text, #e7ebf2);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card.is-loading .ls-track-card__status {
+  color: var(--ls-muted, #9aa4b3);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__refresh,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__close:hover {
+  background: var(--ls-surface-3, #262c37);
+  color: var(--ls-link, #82aaff);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__refresh:hover {
+  background: var(--ls-border, #333b47);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__site,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__site:link,
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__site:visited {
+  color: var(--ls-link, #82aaff);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__site:hover {
+  color: var(--ls-link-hover, #ff8a7a);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__timeline {
+  border-left-color: var(--ls-border, #333b47);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__event-item::before {
+  background: var(--ls-link, #82aaff);
+  box-shadow: 0 0 0 2px var(--ls-surface, #171b22);
+}
+
+html[data-ls-theme='dark'][data-ls-scope='site'] .ls-track-card__event-item.is-planned::before {
+  background: var(--ls-yellow, #ffd75e);
+}
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 600px) {
+  .ls-track-card {
+    padding: 10px 11px;
+  }
+
+  .ls-track-card__head {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .ls-track-card__actions {
+    width: 100%;
+  }
+}
+
+@media print {
+  .ls-track-card {
+    break-inside: avoid;
+  }
+}

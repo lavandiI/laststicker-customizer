@@ -24,7 +24,7 @@
   </header>
 
   <main class="container policy">
-    <p class="eyebrow">Дата вступления в силу: 3 ноября 2026</p>
+    <p class="eyebrow">Дата вступления в силу: 5 ноября 2026</p>
     <h1>Политика конфиденциальности</h1>
 
     <h2>Русский</h2>
@@ -44,7 +44,10 @@
       <li>последний поисковый запрос и время индексации;</li>
       <li>
         настройки оформления: тема, палитра, приглушение изображений и состояние
-        выключателя расширения.
+        выключателя расширения;
+      </li>
+      <li>
+        трек-номера, которые пользователь явно открывает для просмотра маршрута.
       </li>
     </ul>
     <p>
@@ -55,12 +58,13 @@
     <h3>Где хранятся данные</h3>
     <p>
       Данные сохраняются только локально в браузере пользователя: индекс личных
-      диалогов, настройки оформления и состояние выключателя — в
+      диалогов, настройки оформления, состояние выключателя и кэш маршрутов — в
       <code>chrome.storage.local</code>, индекс форума — в IndexedDB расширения
       (<code>laststicker-search-forum</code>).
       При обновлении со старой версии данные диалогов могут быть перенесены из
       <code>localStorage</code> сайта и удалены оттуда. Расширение не отправляет
-      данные на серверы разработчика или третьих лиц.
+      данные на серверы разработчика или третьих лиц. Трек-номер отправляется на
+      сайт Почты России или Белпочты только по клику пользователя.
     </p>
 
     <h3>Как используются данные</h3>
@@ -68,6 +72,11 @@
       Только для отображения статистики, поиска по сообщениям и перехода к найденному
       сообщению. Данные не продаются, не передаются и не используются для рекламы.
       Расширение не использует аналитику, рекламу и собственные серверы.
+    </p>
+    <p>
+      Для показа маршрута трек-номер отправляется на сайт Почты России или
+      Белпочты только после клика по номеру в сообщении. Результат кэшируется
+      локально на 30 минут.
     </p>
     <p>
       После обновления расширение может открыть локальную страницу «Что нового».
@@ -98,7 +107,15 @@
       <li><code>scripting</code> — внедрение панели поиска и парсера на страницы сайта;</li>
       <li><code>offscreen</code> — локальный парсинг HTML без открытой вкладки;</li>
       <li><code>alarms</code> — периодическая проверка автообновления;</li>
-      <li>host permissions — доступ только к <code>laststicker.ru</code> и <code>www.laststicker.ru</code>.</li>
+      <li>
+        host permissions — доступ только к <code>laststicker.ru</code> и
+        <code>www.laststicker.ru</code>;
+      </li>
+      <li>
+        необязательные host permissions для <code>www.pochta.ru</code> и
+        <code>api.belpost.by</code> — запрашиваются только при включении
+        отображения маршрута.
+      </li>
     </ul>
     <p>
       Расширение не запрашивает доступ к истории просмотров и не читает вкладки
@@ -145,7 +162,10 @@
       <li>the last search query and the last indexing time;</li>
       <li>
         appearance settings: theme, palette, image dimming, and the extension
-        on/off state.
+        on/off state;
+      </li>
+      <li>
+        tracking numbers the user explicitly opens to view a route.
       </li>
     </ul>
     <p>
@@ -156,12 +176,13 @@
     <h3>Where data is stored</h3>
     <p>
       Data is stored only locally in the user's browser: the dialog index,
-      appearance settings, and the extension on/off state in
+      appearance settings, the extension on/off state, and the route cache in
       <code>chrome.storage.local</code>, the forum index in the extension's IndexedDB
       (<code>laststicker-search-forum</code>). When upgrading
       from an older version, dialog data may be migrated from the site's
       <code>localStorage</code> and removed from there. The extension does not send
-      data to the developer's or any third party's servers.
+      data to the developer's or any third party's servers. A tracking number is
+      sent to Russian Post or Belpost only after the user clicks it.
     </p>
 
     <h3>How data is used</h3>
@@ -169,6 +190,11 @@
       Only to show statistics, search messages, and navigate to a found message.
       Data is not sold, shared, or used for advertising. The extension does not use
       analytics, advertising, or its own servers.
+    </p>
+    <p>
+      To show a route, a tracking number is sent to Russian Post or Belpost only
+      after the user clicks it in a message. The result is cached locally for
+      30 minutes.
     </p>
     <p>
       After an update, the extension may open a local "What's new" page. It does not
@@ -199,7 +225,15 @@
       <li><code>scripting</code> — inject the search panel and parser into site pages;</li>
       <li><code>offscreen</code> — local HTML parsing without an open tab;</li>
       <li><code>alarms</code> — periodic automatic refresh;</li>
-      <li>host permissions — access only <code>laststicker.ru</code> and <code>www.laststicker.ru</code>.</li>
+      <li>
+        host permissions - access only <code>laststicker.ru</code> and
+        <code>www.laststicker.ru</code>;
+      </li>
+      <li>
+        optional host permissions for <code>www.pochta.ru</code> and
+        <code>api.belpost.by</code> - requested only when route display is
+        enabled.
+      </li>
     </ul>
     <p>
       The extension does not request access to browsing history and does not read
@@ -229,7 +263,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div><strong>LastSticker Search</strong> <span class="muted">· версия 1.6.2</span></div>
+      <div><strong>LastSticker Search</strong> <span class="muted">· версия 1.7.0</span></div>
       <div class="footer-links"><a href="index.html">Главная</a></div>
     </div>
   </footer>

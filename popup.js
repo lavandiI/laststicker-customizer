@@ -13,9 +13,16 @@
   if (!core || !store) return;
 
   const MASTER_KEY = 'isEnabled';
+  const TRACKING_KEY = 'ls_tracking_enabled';
+  const TRACKING_ORIGINS = [
+    'https://www.pochta.ru/*',
+    'https://api.belpost.by/*',
+  ];
 
   let current = core.normalizeTheme(null);
   let masterEnabled = true;
+  let trackingEnabled = false;
+  let trackingBusy = false;
   let saveTimer = null;
   let saveQueue = Promise.resolve();
 
@@ -51,6 +58,72 @@
     if (!storage) return;
 
     await storage.set({ [MASTER_KEY]: enabled });
+  }
+
+  function chromePermissions() {
+    if (
+      typeof chrome === 'undefined' ||
+      !chrome.permissions ||
+      typeof chrome.permissions.request !== 'function'
+    ) {
+      return null;
+    }
+    return chrome.permissions;
+  }
+
+  async function loadTrackingEnabled() {
+    const storage = chromeStorage();
+    if (!storage) return false;
+
+    let stored;
+    try {
+      const data = await storage.get(TRACKING_KEY);
+      stored = data[TRACKING_KEY] === true;
+    } catch {
+      return false;
+    }
+
+    if (!stored) return false;
+
+    const permissions = chromePermissions();
+    if (!permissions || typeof permissions.contains !== 'function') {
+      return true;
+    }
+
+    try {
+      return await permissions.contains({ origins: TRACKING_ORIGINS });
+    } catch {
+      return false;
+    }
+  }
+
+  async function saveTrackingEnabled(enabled) {
+    const storage = chromeStorage();
+    if (!storage) return;
+
+    await storage.set({ [TRACKING_KEY]: enabled });
+  }
+
+  function requestTrackingPermissions() {
+    const permissions = chromePermissions();
+    if (!permissions) return Promise.resolve(true);
+    try {
+      return permissions.request({ origins: TRACKING_ORIGINS });
+    } catch {
+      return Promise.resolve(false);
+    }
+  }
+
+  function removeTrackingPermissions() {
+    const permissions = chromePermissions();
+    if (!permissions || typeof permissions.remove !== 'function') {
+      return Promise.resolve(false);
+    }
+    try {
+      return permissions.remove({ origins: TRACKING_ORIGINS });
+    } catch {
+      return Promise.resolve(false);
+    }
   }
 
   function onMasterChanged(callback) {
@@ -98,9 +171,21 @@
     if (reset) reset.disabled = !enabled;
   }
 
-  function render(doc, theme, enabled) {
+  function syncTrackingControls(doc, enabled) {
+    const settings = byId(doc, 'trackingSettings');
+    if (settings) {
+      settings.classList.toggle('is-disabled', !enabled);
+      settings.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    }
+
+    const toggle = byId(doc, 'trackingEnabled');
+    if (toggle) toggle.disabled = !enabled || trackingBusy;
+  }
+
+  function render(doc, theme, enabled, tracking) {
     current = core.normalizeTheme(theme);
     masterEnabled = enabled !== false;
+    trackingEnabled = tracking === true;
 
     const masterToggle = byId(doc, 'extensionEnabled');
     if (masterToggle) masterToggle.checked = masterEnabled;
@@ -113,6 +198,32 @@
 
     const masterCard = byId(doc, 'masterCard');
     if (masterCard) masterCard.classList.toggle('is-on', masterEnabled);
+
+    const trackingToggle = byId(doc, 'trackingEnabled');
+    if (trackingToggle) {
+      trackingToggle.checked = trackingBusy
+        ? true
+        : masterEnabled
+          ? trackingEnabled
+          : false;
+    }
+
+    const trackingState = byId(doc, 'trackingState');
+    if (trackingState) {
+      trackingState.textContent = trackingBusy
+        ? 'Запрос доступа…'
+        : masterEnabled
+          ? trackingEnabled
+            ? 'Включено'
+            : 'Выключено'
+          : 'Недоступно';
+      trackingState.classList.toggle(
+        'is-on',
+        masterEnabled && trackingEnabled,
+      );
+    }
+
+    syncTrackingControls(doc, masterEnabled);
 
     const themeToggle = byId(doc, 'themeEnabled');
     if (themeToggle) {
@@ -176,10 +287,52 @@
     return enqueue(async function () {
       try {
         const next = await store.saveTheme(partial);
-        render(doc, next, masterEnabled);
+        render(doc, next, masterEnabled, trackingEnabled);
         showSaved(doc, statusText);
       } catch {
         showSaved(doc, 'Не удалось сохранить');
+      }
+    });
+  }
+
+  function updateTracking(doc, enabled) {
+    if (enabled) {
+      trackingBusy = true;
+      render(doc, current, masterEnabled, trackingEnabled);
+      const permissionRequest = requestTrackingPermissions();
+
+      return enqueue(async function () {
+        try {
+          const granted = await permissionRequest;
+          if (!granted) {
+            trackingEnabled = false;
+            await saveTrackingEnabled(false);
+            showSaved(doc, 'Нет доступа к сайтам');
+            return;
+          }
+
+          await saveTrackingEnabled(true);
+          trackingEnabled = true;
+          showSaved(doc, 'Маршрут включён');
+        } catch {
+          showSaved(doc, 'Не удалось сохранить');
+        } finally {
+          trackingBusy = false;
+          render(doc, current, masterEnabled, trackingEnabled);
+        }
+      });
+    }
+
+    return enqueue(async function () {
+      try {
+        await saveTrackingEnabled(false);
+        trackingEnabled = false;
+        await removeTrackingPermissions();
+        showSaved(doc, 'Маршрут выключен');
+      } catch {
+        showSaved(doc, 'Не удалось сохранить');
+      } finally {
+        render(doc, current, masterEnabled, trackingEnabled);
       }
     });
   }
@@ -189,7 +342,7 @@
       try {
         await saveMasterEnabled(enabled);
         masterEnabled = enabled;
-        render(doc, current, enabled);
+        render(doc, current, enabled, trackingEnabled);
         showSaved(doc, enabled ? 'Расширение включено' : 'Выключено');
 
         if (
@@ -230,12 +383,16 @@
       }
     }
 
-    Promise.all([store.loadTheme(), loadMasterEnabled()])
-      .then(([theme, enabled]) => {
-        render(document, theme, enabled);
+    Promise.all([
+      store.loadTheme(),
+      loadMasterEnabled(),
+      loadTrackingEnabled(),
+    ])
+      .then(([theme, enabled, tracking]) => {
+        render(document, theme, enabled, tracking);
       })
       .catch(() => {
-        render(document, core.DEFAULT_THEME, true);
+        render(document, core.DEFAULT_THEME, true, false);
       });
 
     document.addEventListener('change', function (event) {
@@ -248,6 +405,11 @@
       }
 
       if (!masterEnabled) return;
+
+      if (target.id === 'trackingEnabled') {
+        updateTracking(document, target.checked);
+        return;
+      }
 
       if (target.id === 'themeEnabled') {
         updateTheme(document, { enabled: target.checked });
@@ -273,11 +435,11 @@
     }
 
     store.onThemeChanged(function (theme) {
-      render(document, theme, masterEnabled);
+      render(document, theme, masterEnabled, trackingEnabled);
     });
 
     onMasterChanged(function (enabled) {
-      render(document, current, enabled);
+      render(document, current, enabled, trackingEnabled);
     });
 
     return { render };

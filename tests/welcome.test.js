@@ -29,7 +29,7 @@ function createChromeMock(initial = {}) {
       },
     },
     runtime: {
-      getManifest: () => ({ version: '1.6.2' }),
+      getManifest: () => ({ version: '1.7.0' }),
       sendMessage: (message, callback) => {
         if (callback) callback({ success: true });
       },
@@ -80,19 +80,20 @@ describe('welcome page', () => {
     delete global.chrome;
   });
 
-  test('shows the version, theme and scroll cards for 1.5.0 users', async () => {
+  test('shows the version, theme, scroll and tracking cards for 1.5.0 users', async () => {
     const doc = createWelcomeDocument();
     const info = welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.2&previous=1.5.0',
+      '?reason=update&version=1.7.0&previous=1.5.0',
     );
     await flush();
 
-    expect(info.version).toBe('1.6.2');
-    expect(doc.getElementById('versionLabel').textContent).toBe('v1.6.2');
-    expect(doc.getElementById('heroVersion').textContent).toBe('в 1.6.2');
+    expect(info.version).toBe('1.7.0');
+    expect(doc.getElementById('versionLabel').textContent).toBe('v1.7.0');
+    expect(doc.getElementById('heroVersion').textContent).toBe('в 1.7.0');
     expect(doc.getElementById('themeFeature').hidden).toBe(false);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('trackingFeature').hidden).toBe(false);
     expect(doc.getElementById('previousLabel').textContent).toBe(
       'Обновление с 1.5.0',
     );
@@ -100,27 +101,40 @@ describe('welcome page', () => {
     expect(doc.documentElement.dataset.theme).toBe('dark');
   });
 
-  test('hides the theme card and shows the scroll card for 1.6.1 users', async () => {
+  test('shows scroll and tracking cards for 1.6.1 users', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.2&previous=1.6.1',
+      '?reason=update&version=1.7.0&previous=1.6.1',
     );
     await flush();
 
     expect(doc.getElementById('themeFeature').hidden).toBe(true);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('trackingFeature').hidden).toBe(false);
   });
 
-  test('hides the scroll card when updating from 1.6.2', async () => {
+  test('hides the scroll card and shows tracking for 1.6.2 users', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.3&previous=1.6.2',
+      '?reason=update&version=1.7.0&previous=1.6.2',
     );
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
+    expect(doc.getElementById('trackingFeature').hidden).toBe(false);
+  });
+
+  test('hides the tracking card when updating from 1.7.0', async () => {
+    const doc = createWelcomeDocument();
+    welcome.initWelcome(
+      doc,
+      '?reason=update&version=1.7.1&previous=1.7.0',
+    );
+    await flush();
+
+    expect(doc.getElementById('trackingFeature').hidden).toBe(true);
   });
 
   test('offers to enable a disabled extension', async () => {
@@ -130,7 +144,7 @@ describe('welcome page', () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.2&previous=1.5.0',
+      '?reason=update&version=1.7.0&previous=1.5.0',
     );
     await flush();
 
@@ -145,7 +159,7 @@ describe('welcome page', () => {
 
   test('opens LastSticker in a new tab', async () => {
     const doc = createWelcomeDocument();
-    welcome.initWelcome(doc, '?version=1.6.2&previous=1.5.0');
+    welcome.initWelcome(doc, '?version=1.7.0&previous=1.5.0');
     await flush();
 
     doc.getElementById('openSite').click();
@@ -157,6 +171,7 @@ describe('welcome page', () => {
 
   test('compares versions numerically', () => {
     expect(welcome.compareVersions('1.10.0', '1.9.9')).toBe(1);
+    expect(welcome.compareVersions('1.7.0', '1.6.2')).toBe(1);
     expect(welcome.compareVersions('1.6.2', '1.6.1')).toBe(1);
     expect(welcome.compareVersions('1.6.1', '1.6.0')).toBe(1);
     expect(welcome.compareVersions('1.6.0', '1.6.0')).toBe(0);

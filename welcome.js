@@ -41,7 +41,7 @@
     } catch {
       // Fall through to the default below.
     }
-    return '1.6.2';
+    return '1.7.0';
   }
 
   async function loadState() {
@@ -161,11 +161,14 @@
     const lead = doc.getElementById('lead');
     const themeFeature = doc.getElementById('themeFeature');
     const scrollFeature = doc.getElementById('scrollFeature');
+    const trackingFeature = doc.getElementById('trackingFeature');
 
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
     const fromBeforeScroll =
       !previousVersion || compareVersions(previousVersion, '1.6.2') < 0;
+    const fromBeforeTracking =
+      !previousVersion || compareVersions(previousVersion, '1.7.0') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -180,7 +183,13 @@
     if (lead) {
       if (fromOldVersion) {
         lead.textContent =
-          'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
+          'Маршрут по трек-номеру, тёмная тема, быстрая прокрутка и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else if (fromBeforeTracking && fromBeforeScroll) {
+        lead.textContent =
+          'Маршрут по трек-номеру, быстрая прокрутка и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else if (fromBeforeTracking) {
+        lead.textContent =
+          'Маршрут по трек-номеру и один выключатель для всего расширения — чтобы ничего не пропустить.';
       } else if (fromBeforeScroll) {
         lead.textContent =
           'Быстрая прокрутка в начало и в конец страницы и один выключатель для всего расширения — чтобы ничего не пропустить.';
@@ -192,6 +201,7 @@
 
     if (themeFeature) themeFeature.hidden = !fromOldVersion;
     if (scrollFeature) scrollFeature.hidden = !fromBeforeScroll;
+    if (trackingFeature) trackingFeature.hidden = !fromBeforeTracking;
   }
 
   function initWelcome(doc, search) {

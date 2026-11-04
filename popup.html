@@ -66,6 +66,37 @@
         Включите расширение, чтобы менять оформление.
       </p>
 
+      <div class="ls-section-label">Посылки</div>
+
+      <div class="ls-tracking-settings" id="trackingSettings">
+        <section class="ls-switch-row" aria-labelledby="trackingSwitchTitle">
+          <div class="ls-switch-copy">
+            <span class="ls-switch-title" id="trackingSwitchTitle"
+              >Маршрут по трек-номеру</span
+            >
+            <span class="ls-switch-hint">Показывать путь письма по клику</span>
+          </div>
+          <span class="ls-switch-state" id="trackingState" aria-live="polite"
+            >Выключено</span
+          >
+          <label class="ls-switch">
+            <input
+              type="checkbox"
+              id="trackingEnabled"
+              role="switch"
+              aria-label="Маршрут по трек-номеру"
+            />
+            <span class="ls-switch-track" aria-hidden="true">
+              <span class="ls-switch-thumb"></span>
+            </span>
+          </label>
+        </section>
+        <p class="ls-tracking-note" id="trackingNote">
+          При включении расширение запросит доступ к сайтам Почты России и
+          Белпочты. Номер отправляется только по клику.
+        </p>
+      </div>
+
       <div class="ls-section-label">Оформление</div>
 
       <div class="ls-theme-settings" id="themeSettings">

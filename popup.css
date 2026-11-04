@@ -307,6 +307,29 @@ html[data-ls-theme='dark'] .ls-master-row.is-on .ls-master-icon {
   display: none !important;
 }
 
+.ls-tracking-settings {
+  margin-bottom: 12px;
+}
+
+.ls-tracking-settings.is-disabled {
+  opacity: 0.5;
+}
+
+.ls-tracking-settings.is-disabled .ls-switch {
+  pointer-events: none;
+}
+
+.ls-tracking-note {
+  margin: 6px 0 0;
+  padding: 7px 9px;
+  border: 1px dashed var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-surface);
+  color: var(--popup-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .ls-reset:disabled {
   opacity: 0.5;
   cursor: not-allowed;

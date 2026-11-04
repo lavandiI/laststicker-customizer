@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LastSticker Search",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
   "permissions": [
@@ -13,6 +13,10 @@
   "host_permissions": [
     "*://laststicker.ru/*",
     "*://www.laststicker.ru/*"
+  ],
+  "optional_host_permissions": [
+    "https://www.pochta.ru/*",
+    "https://api.belpost.by/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -40,7 +44,8 @@
       ],
       "css": [
         "theme.css",
-        "scroll-widget.css"
+        "scroll-widget.css",
+        "tracking.css"
       ],
       "js": [
         "theme-core.js",
@@ -58,6 +63,8 @@
       ],
       "js": [
         "scroll-widget.js",
+        "tracking-core.js",
+        "tracking.js",
         "content.js"
       ],
       "run_at": "document_idle"

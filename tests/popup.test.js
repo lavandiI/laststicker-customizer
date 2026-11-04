@@ -58,6 +58,11 @@ function createChromeMock(initial = {}) {
         },
       },
     },
+    permissions: {
+      contains: jest.fn(async () => true),
+      request: jest.fn(async () => true),
+      remove: jest.fn(async () => true),
+    },
     data,
     emit(changes) {
       listeners.slice().forEach((listener) => listener(changes, 'local'));
@@ -248,5 +253,110 @@ describe('popup settings', () => {
     expect(doc.documentElement.dataset.lsTheme).toBe('light');
     expect(doc.getElementById('themeEnabled').checked).toBe(false);
     expect(doc.getElementById('saveStatus').textContent).toBe('Сброшено');
+  });
+
+  test('keeps tracking off by default', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    expect(doc.getElementById('trackingEnabled').checked).toBe(false);
+    expect(doc.getElementById('trackingState').textContent).toBe('Выключено');
+    expect(
+      doc.getElementById('trackingSettings').classList.contains('is-disabled'),
+    ).toBe(false);
+  });
+
+  test('requests permissions and enables tracking', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const tracking = doc.getElementById('trackingEnabled');
+    tracking.checked = true;
+    change(tracking);
+    await flush();
+    await flush();
+
+    expect(chromeMock.permissions.request).toHaveBeenCalledWith({
+      origins: ['https://www.pochta.ru/*', 'https://api.belpost.by/*'],
+    });
+    expect(chromeMock.data.ls_tracking_enabled).toBe(true);
+    expect(tracking.checked).toBe(true);
+    expect(doc.getElementById('trackingState').textContent).toBe('Включено');
+  });
+
+  test('keeps tracking off when permission is denied', async () => {
+    chromeMock.permissions.request.mockResolvedValueOnce(false);
+
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const tracking = doc.getElementById('trackingEnabled');
+    tracking.checked = true;
+    change(tracking);
+    await flush();
+    await flush();
+
+    expect(chromeMock.data.ls_tracking_enabled).toBe(false);
+    expect(tracking.checked).toBe(false);
+    expect(doc.getElementById('trackingState').textContent).toBe('Выключено');
+    expect(doc.getElementById('saveStatus').textContent).toBe(
+      'Нет доступа к сайтам',
+    );
+  });
+
+  test('reads a stored tracking setting only when permission is present', async () => {
+    chromeMock = createChromeMock({ ls_tracking_enabled: true });
+    global.chrome = chromeMock;
+
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    expect(chromeMock.permissions.contains).toHaveBeenCalledWith({
+      origins: ['https://www.pochta.ru/*', 'https://api.belpost.by/*'],
+    });
+    expect(doc.getElementById('trackingEnabled').checked).toBe(true);
+    expect(doc.getElementById('trackingState').textContent).toBe('Включено');
+  });
+
+  test('removes permissions when tracking is disabled', async () => {
+    chromeMock = createChromeMock({ ls_tracking_enabled: true });
+    global.chrome = chromeMock;
+
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const tracking = doc.getElementById('trackingEnabled');
+    tracking.checked = false;
+    change(tracking);
+    await flush();
+    await flush();
+
+    expect(chromeMock.data.ls_tracking_enabled).toBe(false);
+    expect(chromeMock.permissions.remove).toHaveBeenCalledWith({
+      origins: ['https://www.pochta.ru/*', 'https://api.belpost.by/*'],
+    });
+    expect(doc.getElementById('trackingState').textContent).toBe('Выключено');
+  });
+
+  test('disables tracking controls when the extension is off', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const master = doc.getElementById('extensionEnabled');
+    master.checked = false;
+    change(master);
+    await flush();
+
+    expect(doc.getElementById('trackingEnabled').disabled).toBe(true);
+    expect(
+      doc.getElementById('trackingSettings').classList.contains('is-disabled'),
+    ).toBe(true);
+    expect(doc.getElementById('trackingState').textContent).toBe('Недоступно');
   });
 });

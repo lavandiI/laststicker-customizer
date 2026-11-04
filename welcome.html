@@ -13,7 +13,7 @@
           <img src="icons/icon48.png" width="40" height="40" alt="" />
           <div class="brand-copy">
             <strong>LastSticker Search</strong>
-            <span id="versionLabel">1.6.2</span>
+            <span id="versionLabel">1.7.0</span>
           </div>
         </div>
         <button type="button" class="ghost" id="closeTop">Закрыть</button>
@@ -24,11 +24,11 @@
           <span class="eyebrow" id="eyebrow">Обновление установлено</span>
           <h1>
             Что нового
-            <span class="accent" id="heroVersion">в 1.6.2</span>
+            <span class="accent" id="heroVersion">в 1.7.0</span>
           </h1>
           <p class="lead" id="lead">
-            Быстрая прокрутка в начало и в конец страницы, тёмная тема всего
-            сайта и один выключатель для всего расширения — чтобы ничего не
+            Маршрут по трек-номеру, быстрая прокрутка, тёмная тема всего сайта
+            и один выключатель для всего расширения — чтобы ничего не
             пропустить.
           </p>
           <div class="actions">
@@ -97,7 +97,7 @@
       <section class="notice" id="disabledBanner" hidden>
         <div>
           <strong>Расширение сейчас выключено</strong>
-          <span>Включите его, чтобы вернуть панель поиска и тёмную тему.</span>
+          <span>Включите его, чтобы вернуть панель поиска, тёмную тему и маршруты.</span>
         </div>
         <button type="button" class="button primary" id="enableBtn">
           Включить расширение
@@ -160,6 +160,33 @@
             <div class="scroll-demo" aria-hidden="true">
               <span class="scroll-demo-btn">↑</span>
               <span class="scroll-demo-btn">↓</span>
+            </div>
+          </article>
+
+          <article class="feature" id="trackingFeature" hidden>
+            <span class="feature-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 7h16v13H4z" />
+                <path d="M7 7V4h10v3" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+            </span>
+            <h3>Маршрут по трек-номеру</h3>
+            <p>
+              Номер в сообщении становится ссылкой. По клику под сообщением
+              раскрывается путь письма Почты России или Белпочты.
+            </p>
+            <div class="tracking-demo" aria-hidden="true">
+              <span class="tracking-demo-number">RR123456789BY</span>
+              <span class="tracking-demo-status">Вручено · Борисов</span>
             </div>
           </article>
 
@@ -242,7 +269,7 @@
         <p>
           Данные остаются в вашем браузере. Без аналитики и внешних запросов.
         </p>
-        <span>LastSticker Search · <span id="footerVersion">1.6.2</span></span>
+        <span>LastSticker Search · <span id="footerVersion">1.7.0</span></span>
       </footer>
     </main>
 

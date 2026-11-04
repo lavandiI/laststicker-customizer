@@ -22,6 +22,17 @@ describe('runtime package', () => {
     );
   });
 
+  test('includes the tracking modules', () => {
+    expect(files).toEqual(
+      expect.arrayContaining([
+        'tracking-core.js',
+        'tracking-api.js',
+        'tracking.js',
+        'tracking.css',
+      ]),
+    );
+  });
+
   test('includes the welcome page', () => {
     expect(files).toEqual(
       expect.arrayContaining([

@@ -3,6 +3,8 @@
 
 importScripts('fetch-retry.js');
 importScripts('forum-storage.js');
+importScripts('tracking-core.js');
+importScripts('tracking-api.js');
 
 console.log('[LS Search] Background script loaded');
 
@@ -31,6 +33,10 @@ const AUTO_META_KEY = 'ls_search_auto_meta';
 const MESSAGES_KEY = 'ls_search_messages';
 const WELCOME_LAST_KEY = 'ls_welcome_last_version';
 const WELCOME_PENDING_KEY = 'ls_welcome_pending';
+const TRACKING_ENABLED_KEY = 'ls_tracking_enabled';
+const TRACKING_CACHE_KEY = 'ls_tracking_cache';
+const TRACKING_CACHE_TTL = 30 * 60 * 1000;
+const TRACKING_CACHE_LIMIT = 30;
 
 let indexInProgress = false;
 let indexCancelRequested = false;
@@ -78,6 +84,125 @@ async function isExtensionEnabled() {
     return result[STORAGE_KEY] !== false;
   } catch {
     return true;
+  }
+}
+
+async function isTrackingEnabled() {
+  try {
+    const result = await chrome.storage.local.get(TRACKING_ENABLED_KEY);
+    return result[TRACKING_ENABLED_KEY] === true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasTrackingPermission() {
+  try {
+    if (!chrome.permissions || !chrome.permissions.contains) return false;
+    return await chrome.permissions.contains({
+      origins: globalThis.LSTrackingApi.TRACKING_ORIGINS,
+    });
+  } catch {
+    return false;
+  }
+}
+
+function isValidTrackingNumber(number, operator) {
+  if (operator === 'belpost') {
+    return /^\d{13}$/.test(number) || /^[A-Z]{2}\d{9}BY$/.test(number);
+  }
+  return /^\d{14}$/.test(number) || /^[A-Z]{2}\d{9}RU$/.test(number);
+}
+
+async function readTrackingCache(key) {
+  try {
+    const data = await chrome.storage.local.get(TRACKING_CACHE_KEY);
+    const cache = data[TRACKING_CACHE_KEY] || {};
+    const entry = cache[key];
+
+    if (!entry || !entry.ts || Date.now() - entry.ts > TRACKING_CACHE_TTL) {
+      if (entry) {
+        delete cache[key];
+        await chrome.storage.local.set({ [TRACKING_CACHE_KEY]: cache });
+      }
+      return null;
+    }
+
+    return entry.result || null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeTrackingCache(key, result) {
+  try {
+    const data = await chrome.storage.local.get(TRACKING_CACHE_KEY);
+    const cache =
+      data[TRACKING_CACHE_KEY] && typeof data[TRACKING_CACHE_KEY] === 'object'
+        ? data[TRACKING_CACHE_KEY]
+        : {};
+    const now = Date.now();
+    const entries = Object.entries(cache)
+      .filter(([, entry]) => entry && now - entry.ts <= TRACKING_CACHE_TTL)
+      .sort((a, b) => b[1].ts - a[1].ts)
+      .slice(0, TRACKING_CACHE_LIMIT);
+
+    await chrome.storage.local.set({
+      [TRACKING_CACHE_KEY]: Object.fromEntries([
+        ...entries,
+        [key, { ts: now, result }],
+      ]),
+    });
+  } catch {
+    // Cache failures must not break tracking.
+  }
+}
+
+async function handleTrackShipment(request, sendResponse) {
+  const number = globalThis.LSTrackingCore.normalizeNumber(request.number);
+  const operator =
+    request.operator === 'belpost' || request.operator === 'pochta'
+      ? request.operator
+      : '';
+
+  if (
+    !number ||
+    !operator ||
+    !isValidTrackingNumber(number, operator) ||
+    !globalThis.LSTrackingApi
+  ) {
+    sendResponse({ error: 'invalid_number' });
+    return;
+  }
+
+  if (!(await isTrackingEnabled())) {
+    sendResponse({ error: 'tracking_disabled' });
+    return;
+  }
+
+  if (!(await hasTrackingPermission())) {
+    sendResponse({ error: 'permission_required' });
+    return;
+  }
+
+  const key = `${operator}:${number}`;
+  if (!request.force) {
+    const cached = await readTrackingCache(key);
+    if (cached) {
+      sendResponse({ result: cached });
+      return;
+    }
+  }
+
+  try {
+    const result = await globalThis.LSTrackingApi.fetchTracking(operator, number);
+    await writeTrackingCache(key, result);
+    sendResponse({ result });
+  } catch (e) {
+    sendResponse({
+      error: e.code || 'tracking_failed',
+      message: e.message,
+    });
   }
 }
 
@@ -577,6 +702,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: e.message });
       }
     })();
+    return true;
+  }
+
+  if (request.action === 'trackShipment') {
+    handleTrackShipment(request, sendResponse).catch((error) => {
+      sendResponse({ error: error.code || 'tracking_failed' });
+    });
     return true;
   }
 
