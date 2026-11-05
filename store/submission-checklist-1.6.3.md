@@ -34,7 +34,7 @@ npm run package
 1. Открыть https://chrome.google.com/webstore/devconsole
 2. Выбрать **LastSticker Search**.
 3. Проверить **Package**: черновик **1.6.3**, опубликовано **1.6.1**.
-4. Проверить описание из `store/description-1.6.3.txt` (3726 символов).
+4. Проверить описание из `store/description-1.6.3.txt` (3755 символов).
 5. Проверить, что в карточке пять скриншотов, включая тёмную тему.
 6. Проверить Privacy practices: remote code — No; данные — локально; разрешения не расширены.
 7. Отправить на проверку.
