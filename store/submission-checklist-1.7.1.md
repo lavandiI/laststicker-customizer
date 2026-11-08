@@ -5,6 +5,9 @@
 - В Store опубликована **1.6.3**.
 - Черновик **1.6.4** отправлен на проверку и ожидает решения.
 - Версия **1.7.1** подготовлена в ветке `release/1.7.1`; она включает все изменения 1.6.4, 1.7.0 и 1.7.1.
+- Коммит подготовки: `d13d6b8`.
+- ZIP: `dist/laststicker-search-1.7.1.zip`, 500 961 байт, SHA256 `EB64F223B55897177195970B32B250F054BF160A8E5C03E16DF7CE281866D4D4`.
+- GitHub release **v1.7.1** создан как **draft**; ZIP прикреплён. Публиковать release отдельно, после решения по Store.
 - Новых разрешений нет: `storage`, `scripting`, `offscreen`, `alarms`, host permissions для `laststicker.ru` и `www.laststicker.ru`.
 - Подробное описание: `store/description-1.7.1.txt`.
 - Что нового: `store/whats-new-1.7.1.txt`.
