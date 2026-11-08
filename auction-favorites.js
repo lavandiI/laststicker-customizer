@@ -28,9 +28,7 @@
     const path = String(pathname || '');
 
     if (/^\/auction\/post\d+(?:\/|$)/.test(path)) return false;
-    if (
-      /^\/auction\/(?:favorite|subscribe|archive|won)(?:\/|$)/.test(path)
-    ) {
+    if (/^\/auction\/(?:favorite|archive|won)(?:\/|$)/.test(path)) {
       return false;
     }
     if (/^\/users\/auction\/\d+(?:\/|$)/.test(path)) return true;
@@ -333,7 +331,6 @@
       doc.querySelectorAll('table.inner tr').forEach((row) => {
         if (!row.querySelector('a[href*="/auction/post"]')) return;
         if (row.cells && row.cells.length < 3) return;
-        if (isEndedRow(row)) return;
         if (hasFavoriteControl(row)) return;
 
         const postId = getPostIdFromRow(row);

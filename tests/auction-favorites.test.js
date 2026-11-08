@@ -87,7 +87,7 @@ describe('auction favorite stars', () => {
 
     expect(isAuctionListPath('/auction/post1103446/')).toBe(false);
     expect(isAuctionListPath('/auction/favorite/')).toBe(false);
-    expect(isAuctionListPath('/auction/subscribe/')).toBe(false);
+    expect(isAuctionListPath('/auction/subscribe/')).toBe(true);
     expect(isAuctionListPath('/auction/archive/')).toBe(false);
     expect(isAuctionListPath('/auction/won/')).toBe(false);
     expect(isAuctionListPath('/users/my_auctions/')).toBe(false);
@@ -211,27 +211,28 @@ describe('auction favorite stars', () => {
     expect(second.title).toBe('Добавить в избранное');
   });
 
-  test('injects stars into active rows and skips ended or existing ones', () => {
+  test('injects stars into every auction row except existing controls', () => {
     createAuctionDocument();
     const controller = createController(document, {
       favoriteIds: ['1103446'],
     });
 
     const stars = document.querySelectorAll('[data-ls-auction-fav]');
-    expect(stars).toHaveLength(3);
+    expect(stars).toHaveLength(4);
 
     const favoriteStar = document.querySelector(
       '[data-ls-auction-fav="1103446"]',
     );
     const normalStar = document.querySelector('[data-ls-auction-fav="1102608"]');
+    const endedStar = document.querySelector('[data-ls-auction-fav="1103828"]');
     const adStar = document.querySelector('[data-ls-auction-fav="1095514"]');
 
     expect(favoriteStar.className).toBe('forum_favorite_button_yes');
     expect(normalStar.className).toBe('forum_favorite_button_no');
+    expect(endedStar.className).toBe('forum_favorite_button_no');
     expect(adStar.className).toBe('forum_favorite_button_no');
 
     const rows = document.querySelectorAll('table.inner tr');
-    expect(rows[2].querySelector('[data-ls-auction-fav]')).toBeNull();
     expect(rows[3].querySelectorAll('.forum_favorite_button_yes')).toHaveLength(
       1,
     );
@@ -243,10 +244,23 @@ describe('auction favorite stars', () => {
     ).toBeNull();
 
     expect(controller.scan()).toBe(0);
-    expect(document.querySelectorAll('[data-ls-auction-fav]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-ls-auction-fav]')).toHaveLength(4);
 
     controller.destroy();
     expect(document.querySelectorAll('[data-ls-auction-fav]')).toHaveLength(0);
+  });
+
+  test('restores a filled star for an ended favorite', () => {
+    createAuctionDocument();
+    const controller = createController(document, {
+      favoriteIds: ['1103828'],
+    });
+
+    const endedStar = document.querySelector('[data-ls-auction-fav="1103828"]');
+    expect(endedStar.className).toBe('forum_favorite_button_yes');
+    expect(endedStar.title).toBe('Убрать из избранного');
+
+    controller.destroy();
   });
 
   test('keeps duplicate post ids unique and syncs all of them', () => {
