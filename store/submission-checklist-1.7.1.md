@@ -6,8 +6,8 @@
 - Черновик **1.6.4** отправлен на проверку и ожидает решения.
 - Версия **1.7.1** подготовлена в ветке `release/1.7.1`; она включает все изменения 1.6.4, 1.7.0 и 1.7.1.
 - Коммит подготовки: `d13d6b8`.
-- ZIP: `dist/laststicker-search-1.7.1.zip`, 500 961 байт, SHA256 `EB64F223B55897177195970B32B250F054BF160A8E5C03E16DF7CE281866D4D4`.
-- GitHub release **v1.7.1** создан как **draft**; ZIP прикреплён. Публиковать release отдельно, после решения по Store.
+- ZIP: `dist/laststicker-search-1.7.1.zip`, 485 840 байт, SHA256 `230640F4805089FB13467CE9936EFA88E7FB632EFA6D70E4FFD2816F14E8D6ED`.
+- GitHub release **v1.7.1** опубликован; ZIP прикреплён. Для Store используйте именно этот ZIP из релиза: локальная сборка на Windows может отличаться только CRLF/LF и иметь другой SHA.
 - Новых разрешений нет: `storage`, `scripting`, `offscreen`, `alarms`, host permissions для `laststicker.ru` и `www.laststicker.ru`.
 - Подробное описание: `store/description-1.7.1.txt`.
 - Что нового: `store/whats-new-1.7.1.txt`.
@@ -34,7 +34,8 @@ npm run package
 - внутри `manifest.json` в корне и версия 1.7.1;
 - внутри есть `auction-favorites.js`, `collections-filter.js`, `collections-filter.css`, `welcome.*`, `theme.*`, `popup.*`, `scroll-widget.*`, `icons/black/*`;
 - нет файлов трекинга, тестов, `node_modules` и лишних разрешений;
-- размер и SHA256 совпадают с `store/release-notes-1.7.1.md`.
+- размер и SHA256 совпадают с `store/release-notes-1.7.1.md`;
+- для Store используйте ZIP из GitHub release v1.7.1 (каноническая сборка workflow на Linux). Локальный `npm run package` на Windows может дать другой SHA из-за CRLF/LF.
 
 ## 2. Загрузить пакет и заполнить карточку
 
