@@ -6,7 +6,7 @@
 - Черновик **1.6.4** отправлен на проверку и ожидает решения.
 - Версия **1.7.1** подготовлена в ветке `release/1.7.1`; она включает все изменения 1.6.4, 1.7.0 и 1.7.1.
 - Коммит подготовки: `d13d6b8`.
-- ZIP: `dist/laststicker-search-1.7.1.zip`, 485 840 байт, SHA256 `230640F4805089FB13467CE9936EFA88E7FB632EFA6D70E4FFD2816F14E8D6ED`.
+- ZIP: `dist/laststicker-search-1.7.1.zip`, 483 131 байт, SHA256 `49A3181CF2B5046B5B4CDB6917DE49EA8CAD075631CA1E85F3E822539C68223F`.
 - GitHub release **v1.7.1** опубликован; ZIP прикреплён. Для Store используйте именно этот ZIP из релиза: локальная сборка на Windows может отличаться только CRLF/LF и иметь другой SHA.
 - Новых разрешений нет: `storage`, `scripting`, `offscreen`, `alarms`, host permissions для `laststicker.ru` и `www.laststicker.ru`.
 - Подробное описание: `store/description-1.7.1.txt`.
