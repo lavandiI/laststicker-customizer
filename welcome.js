@@ -164,17 +164,14 @@
     const highlightFeature = doc.getElementById('highlightFeature');
     const huntFeature = doc.getElementById('huntFeature');
     const favoriteFeature = doc.getElementById('favoriteFeature');
+    const switchFeature = doc.getElementById('switchFeature');
 
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
     const fromBeforeScroll =
       !previousVersion || compareVersions(previousVersion, '1.6.3') < 0;
-    const fromBeforeHighlight =
-      !previousVersion || compareVersions(previousVersion, '1.6.4') < 0;
-    const fromBeforeHunt =
-      !previousVersion || compareVersions(previousVersion, '1.7.0') < 0;
-    const fromBeforeFavorites =
-      !previousVersion || compareVersions(previousVersion, '1.7.1') < 0;
+    const fromBeforeSwitch =
+      !previousVersion || compareVersions(previousVersion, '1.6.1') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -187,32 +184,18 @@
     }
 
     if (lead) {
-      if (fromBeforeFavorites) {
-        lead.textContent =
-          'В списках аукционов появилась звезда избранного: контурная для обычных лотов, закрашенная для избранных. Работает и в подписках, и у недавно закончившихся лотов.';
-      } else if (fromBeforeHunt) {
-        lead.textContent =
-          'В коллекциях появился фильтр «Я ищу»: он оставляет только наклейки, которые ищете вы, и не сохраняет состояние между визитами.';
-      } else if (fromBeforeHighlight) {
-        lead.textContent =
-          'Найденное сообщение теперь подсвечивается мягким сапфировым акцентом: плавное появление, короткий блик и такое же плавное затухание.';
-      } else if (fromBeforeScroll) {
-        lead.textContent =
-          'Быстрая прокрутка страницы с возможностью отключить её в настройках и один выключатель для всего расширения — чтобы ничего не пропустить.';
-      } else if (fromOldVersion) {
-        lead.textContent =
-          'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
-      } else {
-        lead.textContent =
-          'Поиск, тёмная тема, фильтры коллекций и звёздочки избранного — всё под рукой.';
-      }
+      lead.textContent =
+        'Сапфировая подсветка найденных сообщений, фильтр «Я ищу» в коллекциях и звёздочки избранного в аукционах — главное в ' +
+        version +
+        '.';
     }
 
     if (themeFeature) themeFeature.hidden = !fromOldVersion;
     if (scrollFeature) scrollFeature.hidden = !fromBeforeScroll;
-    if (highlightFeature) highlightFeature.hidden = !fromBeforeHighlight;
-    if (huntFeature) huntFeature.hidden = !fromBeforeHunt;
-    if (favoriteFeature) favoriteFeature.hidden = !fromBeforeFavorites;
+    if (switchFeature) switchFeature.hidden = !fromBeforeSwitch;
+    if (highlightFeature) highlightFeature.hidden = false;
+    if (huntFeature) huntFeature.hidden = false;
+    if (favoriteFeature) favoriteFeature.hidden = false;
   }
 
   function initWelcome(doc, search) {

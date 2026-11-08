@@ -93,9 +93,11 @@ describe('welcome page', () => {
     expect(doc.getElementById('heroVersion').textContent).toBe('в 1.7.1');
     expect(doc.getElementById('themeFeature').hidden).toBe(false);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('switchFeature').hidden).toBe(false);
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
+    expect(doc.getElementById('lead').textContent).toContain('Сапфировая');
     expect(doc.getElementById('previousLabel').textContent).toBe(
       'Обновление с 1.5.0',
     );
@@ -113,6 +115,7 @@ describe('welcome page', () => {
 
     expect(doc.getElementById('themeFeature').hidden).toBe(true);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
@@ -127,10 +130,13 @@ describe('welcome page', () => {
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
+    expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
   });
 
-  test('hides the scroll card when updating from 1.6.3', async () => {
+  test('shows all 1.7.1 changes when updating from 1.6.3', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
@@ -139,13 +145,16 @@ describe('welcome page', () => {
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('звезда');
+    expect(doc.getElementById('lead').textContent).toContain('Сапфировая');
+    expect(doc.getElementById('lead').textContent).toContain('Я ищу');
+    expect(doc.getElementById('lead').textContent).toContain('звёздочки');
   });
 
-  test('shows the hunt and favorite cards when updating from 1.6.4', async () => {
+  test('keeps the release highlights when updating from 1.6.4', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
@@ -153,13 +162,13 @@ describe('welcome page', () => {
     );
     await flush();
 
-    expect(doc.getElementById('highlightFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('звезда');
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
   });
 
-  test('shows only the favorite card when updating from 1.7.0', async () => {
+  test('keeps the release highlights when updating from 1.7.0', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
@@ -167,12 +176,13 @@ describe('welcome page', () => {
     );
     await flush();
 
-    expect(doc.getElementById('huntFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
+    expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('звезда');
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
   });
 
-  test('hides all feature cards when the version has not changed', async () => {
+  test('keeps the release highlights visible for the same version', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
@@ -182,9 +192,10 @@ describe('welcome page', () => {
 
     expect(doc.getElementById('themeFeature').hidden).toBe(true);
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
-    expect(doc.getElementById('highlightFeature').hidden).toBe(true);
-    expect(doc.getElementById('huntFeature').hidden).toBe(true);
-    expect(doc.getElementById('favoriteFeature').hidden).toBe(true);
+    expect(doc.getElementById('switchFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
+    expect(doc.getElementById('huntFeature').hidden).toBe(false);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
   });
 
   test('offers to enable a disabled extension', async () => {
