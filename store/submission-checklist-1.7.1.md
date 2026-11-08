@@ -52,11 +52,11 @@ npm run package
 9. В поле **What's new** вставить `store/whats-new-1.7.1.txt`.
 10. Проверить пять скриншотов в рекомендуемом порядке:
     - `screenshot-dialogs-1.7.1.png` — поиск по диалогам;
-    - `screenshot-forum-1.7.1.png` — поиск по форуму;
+    - `screenshot-settings-1.7.1.png` — тёмная тема и настройки;
     - `screenshot-hunt-1.7.1.png` — фильтр «Я ищу»;
     - `screenshot-auction-stars-1.7.1.png` — звёздочки избранного;
     - `screenshot-highlight-1.7.1.png` — сапфировая подсветка.
-    Альтернатива: `screenshot-theme-1.6.0.png`.
+    Альтернативы: `screenshot-forum-1.7.1.png`, `screenshot-theme-1.6.0.png`.
 11. Проверить промо-изображения:
     - `store/promo-440x280-1.7.1.png` — маленькое;
     - `store/marquee-1400x560-1.7.1.jpg` — большое.
