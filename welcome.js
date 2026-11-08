@@ -41,7 +41,7 @@
     } catch {
       // Fall through to the default below.
     }
-    return '1.7.0';
+    return '1.7.1';
   }
 
   async function loadState() {
@@ -163,6 +163,7 @@
     const scrollFeature = doc.getElementById('scrollFeature');
     const highlightFeature = doc.getElementById('highlightFeature');
     const huntFeature = doc.getElementById('huntFeature');
+    const favoriteFeature = doc.getElementById('favoriteFeature');
 
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
@@ -172,6 +173,8 @@
       !previousVersion || compareVersions(previousVersion, '1.6.4') < 0;
     const fromBeforeHunt =
       !previousVersion || compareVersions(previousVersion, '1.7.0') < 0;
+    const fromBeforeFavorites =
+      !previousVersion || compareVersions(previousVersion, '1.7.1') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -184,21 +187,24 @@
     }
 
     if (lead) {
-      if (fromOldVersion) {
+      if (fromBeforeFavorites) {
         lead.textContent =
-          'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
-      } else if (fromBeforeScroll) {
-        lead.textContent =
-          'Быстрая прокрутка страницы с возможностью отключить её в настройках и один выключатель для всего расширения — чтобы ничего не пропустить.';
-      } else if (fromBeforeHighlight) {
-        lead.textContent =
-          'Найденное сообщение теперь подсвечивается мягким сапфировым акцентом: плавное появление, короткий блик и такое же плавное затухание.';
+          'В списках аукционов появилась звезда избранного: контурная для обычных лотов, закрашенная для избранных. Работает и в подписках, и у недавно закончившихся лотов.';
       } else if (fromBeforeHunt) {
         lead.textContent =
           'В коллекциях появился фильтр «Я ищу»: он оставляет только наклейки, которые ищете вы, и не сохраняет состояние между визитами.';
+      } else if (fromBeforeHighlight) {
+        lead.textContent =
+          'Найденное сообщение теперь подсвечивается мягким сапфировым акцентом: плавное появление, короткий блик и такое же плавное затухание.';
+      } else if (fromBeforeScroll) {
+        lead.textContent =
+          'Быстрая прокрутка страницы с возможностью отключить её в настройках и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else if (fromOldVersion) {
+        lead.textContent =
+          'Быстрая прокрутка в начало и в конец страницы, тёмная тема всего сайта и один выключатель для всего расширения — чтобы ничего не пропустить.';
       } else {
         lead.textContent =
-          'Один выключатель для всего расширения, чёрная иконка без поиска и этот экран — чтобы ничего не пропустить.';
+          'Поиск, тёмная тема, фильтры коллекций и звёздочки избранного — всё под рукой.';
       }
     }
 
@@ -206,6 +212,7 @@
     if (scrollFeature) scrollFeature.hidden = !fromBeforeScroll;
     if (highlightFeature) highlightFeature.hidden = !fromBeforeHighlight;
     if (huntFeature) huntFeature.hidden = !fromBeforeHunt;
+    if (favoriteFeature) favoriteFeature.hidden = !fromBeforeFavorites;
   }
 
   function initWelcome(doc, search) {

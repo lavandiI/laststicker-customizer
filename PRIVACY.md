@@ -1,10 +1,10 @@
 # LastSticker Customizer — Privacy Policy / Политика конфиденциальности
 
-Effective date / Дата вступления в силу: 2026-11-05
+Effective date / Дата вступления в силу: 2026-11-09
 
 ## Русский
 
-**LastSticker Customizer** — расширение Chrome для локальной индексации и поиска сообщений в собственных диалогах и на форуме `laststicker.ru`.
+**LastSticker Customizer** — расширение Chrome для локальной индексации и поиска сообщений в собственных диалогах и на форуме `laststicker.ru`, а также для настройки интерфейса сайта: фильтра коллекций и звёздочек избранного в аукционах.
 
 ### Какие данные обрабатываются
 
@@ -14,10 +14,12 @@ Effective date / Дата вступления в силу: 2026-11-05
 - идентификаторы диалогов, тем и сообщений;
 - URL страниц диалогов и тем;
 - названия тем, категории и метки форума;
+- названия и идентификаторы коллекций и аукционов, отображаемых на открытых страницах сайта;
+- состояние избранного на аукционе, которое сайт отдаёт для отображения звёздочек;
 - последний поисковый запрос и время индексации;
 - настройки оформления: тема, палитра, приглушение изображений, состояние выключателя расширения и настройка быстрой прокрутки.
 
-Комментарии форума — публичный контент сайта. Расширение сохраняет их локально только для поиска и не публикует новые данные.
+Комментарии форума — публичный контент сайта. Расширение сохраняет их локально только для поиска и не публикует новые данные. Данные коллекций и аукционов используются только для отображения фильтра и звёздочек; список избранного не сохраняется.
 
 ### Где хранятся данные
 
@@ -27,11 +29,11 @@ Effective date / Дата вступления в силу: 2026-11-05
 - настройки оформления, состояние выключателя и настройка быстрой прокрутки — в `chrome.storage.local`;
 - индекс форума — в IndexedDB расширения (`laststicker-search-forum`).
 
-При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц.
+Список избранного и данные аукционов не сохраняются. При обновлении со старой версии данные диалогов могут быть перенесены из `localStorage` сайта и удалены оттуда. Расширение не отправляет данные на серверы разработчика или третьих лиц.
 
 ### Как используются данные
 
-Только для отображения статистики, поиска по сообщениям и перехода к найденному сообщению. Данные не продаются, не передаются и не используются для рекламы. Расширение не использует аналитику, рекламу и собственные серверы.
+Только для отображения статистики, поиска по сообщениям, перехода к найденному сообщению, фильтра «Я ищу» и звёздочек избранного. Клик по звезде выполняет на сайте тот же запрос, что и штатная звезда, используя текущую сессию; расширение не сохраняет пароль и не получает доступ к чужим аккаунтам. Данные не продаются, не передаются и не используются для рекламы. Расширение не использует аналитику, рекламу и собственные серверы.
 
 После обновления расширение может открыть локальную страницу «Что нового». Она не отправляет данные и не использует аналитику.
 
@@ -43,7 +45,7 @@ Effective date / Дата вступления в силу: 2026-11-05
 
 ### Доступ к сайту
 
-Расширение работает только на `laststicker.ru` и `www.laststicker.ru`. Оно читает страницы диалогов и форума, которые пользователь и так может открыть. Расширение не обходит авторизацию и не получает доступ к чужим аккаунтам.
+Расширение работает только на `laststicker.ru` и `www.laststicker.ru`. Оно читает страницы диалогов, форума, коллекций и аукционов, которые пользователь и так может открыть. Расширение не обходит авторизацию и не получает доступ к чужим аккаунтам.
 
 ### Разрешения
 
@@ -73,7 +75,7 @@ Effective date / Дата вступления в силу: 2026-11-05
 
 ## English
 
-**LastSticker Customizer** is a Chrome extension that locally indexes and searches messages in your own dialogs and on the forum at `laststicker.ru`.
+**LastSticker Customizer** is a Chrome extension that locally indexes and searches messages in your own dialogs and on the forum at `laststicker.ru`, and customizes the site interface with a collection filter and favorite stars in auctions.
 
 ### Data processed
 
@@ -83,10 +85,12 @@ Effective date / Дата вступления в силу: 2026-11-05
 - dialog, topic, and message identifiers;
 - dialog and topic page URLs;
 - topic titles, categories, and forum tags;
+- names and identifiers of collections and auctions shown on open site pages;
+- the auction favorite state the site returns for rendering stars;
 - the last search query and the last indexing time;
 - appearance settings: theme, palette, image dimming, the extension on/off state, and the quick-scroll setting.
 
-Forum comments are public site content. The extension stores them locally only for search and does not publish new data.
+Forum comments are public site content. The extension stores them locally only for search and does not publish new data. Collection and auction data is used only to render the filter and stars; the favorites list is not stored.
 
 ### Where data is stored
 
@@ -96,11 +100,11 @@ Data is stored only locally in the user's browser:
 - appearance settings, the extension on/off state, and the quick-scroll setting in `chrome.storage.local`;
 - the forum index in the extension's IndexedDB (`laststicker-search-forum`).
 
-When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers.
+The favorites list and auction data are not stored. When upgrading from an older version, dialog data may be migrated from the site's `localStorage` and removed from there. The extension does not send data to the developer's or any third party's servers.
 
 ### How data is used
 
-Only to show statistics, search messages, and navigate to a found message. Data is not sold, shared, or used for advertising. The extension does not use analytics, advertising, or its own servers.
+Only to show statistics, search messages, navigate to a found message, render the "I'm looking for" filter, and render favorite stars. Clicking a star performs the same request on the site as the site's own star, using the current session; the extension does not store passwords and does not access other users' accounts. Data is not sold, shared, or used for advertising. The extension does not use analytics, advertising, or its own servers.
 
 After an update, the extension may open a local "What's new" page. It does not send data or use analytics.
 
@@ -112,7 +116,7 @@ The forum is indexed manually: the user opens a topic and clicks "Index topic". 
 
 ### Site access
 
-The extension works only on `laststicker.ru` and `www.laststicker.ru`. It reads dialog and forum pages that the user can already open. It does not bypass authentication or access other users' accounts.
+The extension works only on `laststicker.ru` and `www.laststicker.ru`. It reads dialog, forum, collection, and auction pages that the user can already open. It does not bypass authentication or access other users' accounts.
 
 ### Permissions
 

@@ -3,6 +3,7 @@ const {
   isHuntMarked,
   applyHuntFilter,
   initCollectionsFilter,
+  removeCollectionsFilter,
 } = require('../collections-filter');
 
 function createCollectionDocument() {
@@ -100,6 +101,28 @@ describe('collection hunt filter', () => {
     expect(result).toEqual({ visible: 1, total: 4 });
     expect(doc.getElementById('checklist_count').textContent).toBe(
       'Показано 1 из 4',
+    );
+  });
+
+  test('removes the filter and restores the table when the extension is disabled', () => {
+    const doc = createCollectionDocument();
+    const table = doc.getElementById('checklist');
+
+    expect(initCollectionsFilter(doc)).toBe(true);
+    const select = doc.querySelector('.ls-customizer-filter');
+    select.value = 'me';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(removeCollectionsFilter(doc)).toBe(true);
+    expect(doc.querySelector('.ls-customizer-filter')).toBeNull();
+    expect(doc.querySelector('input[data-column="5"]').style.display).toBe('');
+    expect(
+      Array.from(table.querySelectorAll('tbody tr')).some((row) =>
+        row.classList.contains('ls-hunt-hidden'),
+      ),
+    ).toBe(false);
+    expect(doc.getElementById('checklist_count').textContent).toBe(
+      'Показано 4 из 4',
     );
   });
 });

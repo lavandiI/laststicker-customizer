@@ -705,6 +705,37 @@ html[data-theme='dark'] .highlight-demo-avatar {
   font-weight: 700;
 }
 
+.favorite-demo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.favorite-demo-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.favorite-demo-star.filled {
+  border-color: rgba(216, 155, 0, 0.35);
+  background: rgba(216, 155, 0, 0.08);
+  color: #d89b00;
+}
+
 .swatch {
   width: 25px;
   height: 25px;

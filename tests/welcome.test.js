@@ -29,7 +29,7 @@ function createChromeMock(initial = {}) {
       },
     },
     runtime: {
-      getManifest: () => ({ version: '1.6.3' }),
+      getManifest: () => ({ version: '1.7.1' }),
       sendMessage: (message, callback) => {
         if (callback) callback({ success: true });
       },
@@ -80,21 +80,22 @@ describe('welcome page', () => {
     delete global.chrome;
   });
 
-  test('shows the version, theme and scroll cards for 1.5.0 users', async () => {
+  test('shows every feature card for 1.5.0 users', async () => {
     const doc = createWelcomeDocument();
     const info = welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.3&previous=1.5.0',
+      '?reason=update&version=1.7.1&previous=1.5.0',
     );
     await flush();
 
-    expect(info.version).toBe('1.6.3');
-    expect(doc.getElementById('versionLabel').textContent).toBe('v1.6.3');
-    expect(doc.getElementById('heroVersion').textContent).toBe('в 1.6.3');
+    expect(info.version).toBe('1.7.1');
+    expect(doc.getElementById('versionLabel').textContent).toBe('v1.7.1');
+    expect(doc.getElementById('heroVersion').textContent).toBe('в 1.7.1');
     expect(doc.getElementById('themeFeature').hidden).toBe(false);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
     expect(doc.getElementById('previousLabel').textContent).toBe(
       'Обновление с 1.5.0',
     );
@@ -102,56 +103,63 @@ describe('welcome page', () => {
     expect(doc.documentElement.dataset.theme).toBe('dark');
   });
 
-  test('hides the theme card and shows the scroll card for 1.6.1 users', async () => {
+  test('hides the theme card and shows newer cards for 1.6.1 users', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.3&previous=1.6.1',
+      '?reason=update&version=1.7.1&previous=1.6.1',
     );
     await flush();
 
     expect(doc.getElementById('themeFeature').hidden).toBe(true);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
+    expect(doc.getElementById('huntFeature').hidden).toBe(false);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
   });
 
   test('shows the scroll card when updating from 1.6.2', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.3&previous=1.6.2',
+      '?reason=update&version=1.7.1&previous=1.6.2',
     );
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
   });
 
   test('hides the scroll card when updating from 1.6.3', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.4&previous=1.6.3',
+      '?reason=update&version=1.7.1&previous=1.6.3',
     );
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('сапфиров');
+    expect(doc.getElementById('huntFeature').hidden).toBe(false);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
+    expect(doc.getElementById('lead').textContent).toContain('звезда');
   });
 
-  test('shows the hunt filter card when updating from 1.6.4', async () => {
+  test('shows the hunt and favorite cards when updating from 1.6.4', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.7.0&previous=1.6.4',
+      '?reason=update&version=1.7.1&previous=1.6.4',
     );
     await flush();
 
     expect(doc.getElementById('highlightFeature').hidden).toBe(true);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('Я ищу');
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
+    expect(doc.getElementById('lead').textContent).toContain('звезда');
   });
 
-  test('hides the hunt filter card when updating from 1.7.0', async () => {
+  test('shows only the favorite card when updating from 1.7.0', async () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
@@ -160,6 +168,23 @@ describe('welcome page', () => {
     await flush();
 
     expect(doc.getElementById('huntFeature').hidden).toBe(true);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
+    expect(doc.getElementById('lead').textContent).toContain('звезда');
+  });
+
+  test('hides all feature cards when the version has not changed', async () => {
+    const doc = createWelcomeDocument();
+    welcome.initWelcome(
+      doc,
+      '?reason=update&version=1.7.1&previous=1.7.1',
+    );
+    await flush();
+
+    expect(doc.getElementById('themeFeature').hidden).toBe(true);
+    expect(doc.getElementById('scrollFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(true);
+    expect(doc.getElementById('huntFeature').hidden).toBe(true);
+    expect(doc.getElementById('favoriteFeature').hidden).toBe(true);
   });
 
   test('offers to enable a disabled extension', async () => {
@@ -169,7 +194,7 @@ describe('welcome page', () => {
     const doc = createWelcomeDocument();
     welcome.initWelcome(
       doc,
-      '?reason=update&version=1.6.3&previous=1.5.0',
+      '?reason=update&version=1.7.1&previous=1.5.0',
     );
     await flush();
 
@@ -184,7 +209,7 @@ describe('welcome page', () => {
 
   test('opens LastSticker in a new tab', async () => {
     const doc = createWelcomeDocument();
-    welcome.initWelcome(doc, '?version=1.6.3&previous=1.5.0');
+    welcome.initWelcome(doc, '?version=1.7.1&previous=1.5.0');
     await flush();
 
     doc.getElementById('openSite').click();

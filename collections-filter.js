@@ -124,18 +124,107 @@
     return true;
   }
 
+  function removeCollectionsFilter(doc) {
+    const documentRef = doc || (typeof document !== 'undefined' ? document : null);
+    if (!documentRef) return false;
+
+    const table = documentRef.getElementById('checklist');
+    if (!table) return false;
+
+    const filterRow = table.querySelector('thead tr.tablesorter-filter-row');
+    const columnIndex = getHuntColumnIndex(table);
+    const cell =
+      filterRow && columnIndex >= 0 ? filterRow.children[columnIndex] : null;
+
+    if (cell) {
+      const select = cell.querySelector('.ls-customizer-filter');
+      if (select) select.remove();
+
+      const oldInput = cell.querySelector('input.tablesorter-filter');
+      if (oldInput) oldInput.style.display = '';
+    }
+
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    rows.forEach((row) => row.classList.remove('ls-hunt-hidden'));
+
+    const total = readTotal(documentRef) || rows.length;
+    updateCount(documentRef, rows.length, total);
+    return true;
+  }
+
   function start(doc) {
     const documentRef = doc || (typeof document !== 'undefined' ? document : null);
-    if (!documentRef) return;
+    if (!documentRef) return null;
 
+    let stopped = false;
     let attempts = 0;
     const tick = () => {
+      if (stopped) return;
       if (initCollectionsFilter(documentRef) || attempts >= 100) return;
       attempts += 1;
       setTimeout(tick, 50);
     };
 
     tick();
+
+    return {
+      stop() {
+        stopped = true;
+      },
+    };
+  }
+
+  function startWithEnabledState(doc) {
+    const documentRef = doc || (typeof document !== 'undefined' ? document : null);
+    if (!documentRef) return null;
+
+    let handle = null;
+    const enable = () => {
+      if (handle) return;
+      handle = start(documentRef);
+    };
+    const disable = () => {
+      if (handle) {
+        handle.stop();
+        handle = null;
+      }
+      removeCollectionsFilter(documentRef);
+    };
+
+    const chromeApi = root.chrome;
+    if (chromeApi && chromeApi.storage && chromeApi.storage.local) {
+      try {
+        Promise.resolve(chromeApi.storage.local.get('isEnabled'))
+          .then((data) => {
+            if (data && data.isEnabled === false) disable();
+            else enable();
+          })
+          .catch(enable);
+      } catch {
+        enable();
+      }
+    } else {
+      enable();
+    }
+
+    if (chromeApi && chromeApi.storage && chromeApi.storage.onChanged) {
+      chromeApi.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !changes || !changes.isEnabled) return;
+        if (changes.isEnabled.newValue === false) disable();
+        else enable();
+      });
+    }
+
+    if (chromeApi && chromeApi.runtime && chromeApi.runtime.onMessage) {
+      chromeApi.runtime.onMessage.addListener((message) => {
+        if (message && message.action === 'extensionEnabledChanged') {
+          if (message.enabled === false) disable();
+          else enable();
+        }
+      });
+    }
+
+    return { enable, disable };
   }
 
   const api = {
@@ -145,7 +234,9 @@
     updateCount,
     applyHuntFilter,
     initCollectionsFilter,
+    removeCollectionsFilter,
     start,
+    startWithEnabledState,
   };
 
   if (isCommonJS) {
@@ -153,7 +244,7 @@
   } else {
     root.LSCollectionsFilter = api;
     if (typeof document !== 'undefined') {
-      start(document);
+      startWithEnabledState(document);
     }
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

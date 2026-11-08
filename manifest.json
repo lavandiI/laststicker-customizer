@@ -3,7 +3,7 @@
   "name": "LastSticker Customizer",
   "version": "1.7.1",
   "minimum_chrome_version": "109",
-  "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
+  "description": "Поиск по диалогам и форуму, тёмная тема, фильтры коллекций и звёздочки избранного на laststicker.ru",
   "permissions": [
     "storage",
     "scripting",
