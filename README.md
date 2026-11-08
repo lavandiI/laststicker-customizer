@@ -9,17 +9,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/lavandiI/laststicker-search/actions/workflows/ci.yml"><img src="https://github.com/lavandiI/laststicker-search/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/lavandiI/laststicker-search/releases/latest"><img src="https://img.shields.io/github/v/release/lavandiI/laststicker-search?label=version&color=2444bc" alt="Последняя версия"></a>
+  <a href="https://github.com/lavandiI/laststicker-customizer/actions/workflows/ci.yml"><img src="https://github.com/lavandiI/laststicker-customizer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/lavandiI/laststicker-customizer/releases/latest"><img src="https://img.shields.io/github/v/release/lavandiI/laststicker-customizer?label=version&color=2444bc" alt="Последняя версия"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2ea44f" alt="Лицензия MIT"></a>
   <img src="https://img.shields.io/badge/Manifest-V3-2444bc" alt="Manifest V3">
 </p>
 
 <p align="center">
-  <a href="https://lavandii.github.io/laststicker-search/">Сайт</a> ·
-  <a href="https://lavandii.github.io/laststicker-search/privacy.html">Конфиденциальность</a> ·
-  <a href="https://github.com/lavandiI/laststicker-search/releases">Релизы</a> ·
-  <a href="https://github.com/lavandiI/laststicker-search/issues">Поддержка</a> ·
+  <a href="https://lavandii.github.io/laststicker-customizer/">Сайт</a> ·
+  <a href="https://lavandii.github.io/laststicker-customizer/privacy.html">Конфиденциальность</a> ·
+  <a href="https://github.com/lavandiI/laststicker-customizer/releases">Релизы</a> ·
+  <a href="https://github.com/lavandiI/laststicker-customizer/issues">Поддержка</a> ·
   <a href="CHANGELOG.md">CHANGELOG</a>
 </p>
 
@@ -63,7 +63,7 @@
 
 ### Вручную из ZIP
 
-1. Скачайте `laststicker-search-1.6.4.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-search/releases/latest).
+1. Скачайте `laststicker-search-1.6.4.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-customizer/releases/latest).
 2. Распакуйте архив в отдельную папку.
 3. Откройте `chrome://extensions/` и включите **режим разработчика**.
 4. Нажмите **«Загрузить распакованное расширение»** и выберите папку, где лежит `manifest.json`.
@@ -71,8 +71,8 @@
 ### Из исходников
 
 ```bash
-git clone https://github.com/lavandiI/laststicker-search.git
-cd laststicker-search
+git clone https://github.com/lavandiI/laststicker-customizer.git
+cd laststicker-customizer
 git checkout v1.6.4
 ```
 
@@ -131,7 +131,7 @@ git checkout v1.6.4
 - Форум индексируется вручную; полный обход форума не выполняется.
 - Индекс диалогов удаляется кнопкой «Очистить» в панели диалогов. На странице темы кнопка «Очистить» удаляет только эту тему, на главной форума — весь форумный индекс. Удаление расширения удаляет оба индекса.
 
-Подробнее: [политика конфиденциальности](https://lavandii.github.io/laststicker-search/privacy.html) · [PRIVACY.md](PRIVACY.md).
+Подробнее: [политика конфиденциальности](https://lavandii.github.io/laststicker-customizer/privacy.html) · [PRIVACY.md](PRIVACY.md).
 
 ## Разработка
 

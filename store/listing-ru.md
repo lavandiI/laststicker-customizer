@@ -132,11 +132,11 @@ LastSticker Search — расширение для Chrome, которое пом
 
 **Data sale/transfer:** данные не продаются, не передаются третьим лицам и не используются для рекламы или оценки кредитоспособности.
 
-**Homepage URL:** https://lavandii.github.io/laststicker-search/
+**Homepage URL:** https://lavandii.github.io/laststicker-customizer/
 
-**Privacy policy URL:** https://lavandii.github.io/laststicker-search/privacy.html
+**Privacy policy URL:** https://lavandii.github.io/laststicker-customizer/privacy.html
 
-**Support URL:** https://github.com/lavandiI/laststicker-search/issues
+**Support URL:** https://github.com/lavandiI/laststicker-customizer/issues
 
 ## Small promo tile
 
