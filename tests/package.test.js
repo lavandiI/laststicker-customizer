@@ -22,6 +22,12 @@ describe('runtime package', () => {
     );
   });
 
+  test('includes the collection filter', () => {
+    expect(files).toEqual(
+      expect.arrayContaining(['collections-filter.js', 'collections-filter.css']),
+    );
+  });
+
   test('includes the welcome page', () => {
     expect(files).toEqual(
       expect.arrayContaining([

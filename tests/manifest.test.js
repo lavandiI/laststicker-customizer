@@ -40,4 +40,17 @@ describe('manifest', () => {
     expect(contentScript).toBeTruthy();
     expect(contentScript.js).toEqual(['scroll-widget.js', 'content.js']);
   });
+
+  test('injects the collection filter on card pages', () => {
+    const filterScript = manifest.content_scripts.find((script) =>
+      script.js.includes('collections-filter.js'),
+    );
+
+    expect(filterScript).toBeTruthy();
+    expect(filterScript.css).toEqual(['collections-filter.css']);
+    expect(filterScript.run_at).toBe('document_idle');
+    expect(filterScript.matches).toContain(
+      'https://www.laststicker.ru/cards/*',
+    );
+  });
 });

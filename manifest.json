@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "LastSticker Search",
-  "version": "1.6.4",
+  "name": "LastSticker Customizer",
+  "version": "1.7.0",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
   "permissions": [
@@ -59,6 +59,21 @@
       "js": [
         "scroll-widget.js",
         "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://laststicker.ru/cards/*",
+        "http://laststicker.ru/cards/*",
+        "https://www.laststicker.ru/cards/*",
+        "http://www.laststicker.ru/cards/*"
+      ],
+      "css": [
+        "collections-filter.css"
+      ],
+      "js": [
+        "collections-filter.js"
       ],
       "run_at": "document_idle"
     }

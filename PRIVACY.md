@@ -1,10 +1,10 @@
-# LastSticker Search — Privacy Policy / Политика конфиденциальности
+# LastSticker Customizer — Privacy Policy / Политика конфиденциальности
 
 Effective date / Дата вступления в силу: 2026-11-05
 
 ## Русский
 
-**LastSticker Search** — расширение Chrome для локальной индексации и поиска сообщений в собственных диалогах и на форуме `laststicker.ru`.
+**LastSticker Customizer** — расширение Chrome для локальной индексации и поиска сообщений в собственных диалогах и на форуме `laststicker.ru`.
 
 ### Какие данные обрабатываются
 
@@ -73,7 +73,7 @@ Effective date / Дата вступления в силу: 2026-11-05
 
 ## English
 
-**LastSticker Search** is a Chrome extension that locally indexes and searches messages in your own dialogs and on the forum at `laststicker.ru`.
+**LastSticker Customizer** is a Chrome extension that locally indexes and searches messages in your own dialogs and on the forum at `laststicker.ru`.
 
 ### Data processed
 

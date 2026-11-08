@@ -44,6 +44,37 @@
     return /^\/blog\/post\d+(?:\/page\d+)?\/?$/.test(path || '');
   }
 
+  function isForumPath(path) {
+    return /^\/blog(?:\/|$)/.test(path || '');
+  }
+
+  function detectPanelPage(path, doc) {
+    const documentRef = doc || (typeof document !== 'undefined' ? document : null);
+    if (!documentRef) return 'none';
+
+    if (isForumTopicPath(path)) return 'forum-topic';
+
+    if (
+      isForumPath(path) &&
+      (documentRef.querySelector('#content .forum_list') ||
+        documentRef.getElementById('comments_list'))
+    ) {
+      return 'forum';
+    }
+
+    if (isSingleTalkPath(path)) return 'talk';
+
+    if (
+      path &&
+      path.startsWith('/users/my_talks/') &&
+      !path.includes('/hide/')
+    ) {
+      return 'talk-list';
+    }
+
+    return 'none';
+  }
+
   function getForumTopicIdFromPath(path) {
     const match = String(path || '').match(
       /^\/blog\/post(\d+)(?:\/page\d+)?\/?$/,
@@ -273,43 +304,37 @@
     console.log('[LS Search] inline-panel init called, readyState:', document.readyState);
     
     const path = window.location.pathname;
-    
-    // Check if this is a forum topic page
-    if (isForumTopicPath(path)) {
+    const pageType = detectPanelPage(path, document);
+
+    if (pageType === 'forum-topic') {
       console.log('[LS Search] Forum topic page detected, initializing forum panel');
       currentForumPostId = getForumTopicIdFromPath(path);
       initForumPage();
       return;
     }
 
-    // Check if this is a forum index or category page
-    if (
-      document.querySelector('#content .forum_list') ||
-      document.getElementById('comments_list')
-    ) {
+    if (pageType === 'forum') {
       console.log('[LS Search] Forum page detected, initializing forum panel');
       initForumPage();
       return;
     }
 
-    // Check if this is a single talk page
-    if (isSingleTalkPath(path)) {
+    if (pageType === 'talk') {
       console.log('[LS Search] Single talk page detected, initializing talk panel');
       currentTalkId = getTalkIdFromPath(path);
       currentPartnerName = getPartnerNameFromPage();
       initTalkPage();
       return;
     }
-    
-    // Only show on talks list pages (not hidden)
-    if (!path.startsWith('/users/my_talks/') || path.includes('/hide/')) {
-      console.log('[LS Search] Not on talks list page, skipping');
-      // Mark as ready even though we're not initializing the panel
-      // This prevents "InlinePanel still not ready" errors on non-supported pages
+
+    if (pageType !== 'talk-list') {
+      console.log('[LS Search] Unsupported page, skipping');
+      // Mark as ready even though we're not initializing the panel.
+      // This prevents "InlinePanel still not ready" errors on non-supported pages.
       window.InlinePanelReady = true;
       return;
     }
-    
+
     console.log('[LS Search] Initializing inline panel...');
     
     // Wait for InlineStorage and InlineUI to be available
@@ -2182,6 +2207,8 @@
       setupKeyboardNavigation,
       isEditableElement,
       isForumTopicPath,
+      isForumPath,
+      detectPanelPage,
       getForumTopicIdFromPath,
       getForumPageCountFromDocument,
     };

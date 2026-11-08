@@ -12,6 +12,8 @@ module.exports = [
   'indexer.js',
   'offscreen.html',
   'content.js',
+  'collections-filter.js',
+  'collections-filter.css',
   'scroll-widget.js',
   'scroll-widget.css',
   'inline-panel.js',

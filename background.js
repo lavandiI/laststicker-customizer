@@ -874,54 +874,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: 'Расширение отключено' });
         return;
       }
-      
-      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-        if (tabs.length === 0) {
-          sendResponse({ error: 'No active tab' });
-          return;
-        }
-        
-        const tab = tabs[0];
-        
-        if (!tab.url || !tab.url.startsWith('http')) {
-          console.log('[LS Search] Skipping injection - invalid URL:', tab.url);
-          sendResponse({ error: 'Cannot inject into this URL' });
-          return;
-        }
-        
-        try {
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-              return {
-                hasInlineStorage: typeof window.InlineStorage !== 'undefined',
-                hasInlineUI: typeof window.InlineUI !== 'undefined'
-              };
-            }
-          });
-          
-          const state = results[0]?.result;
-          if (state && state.hasInlineStorage && state.hasInlineUI) {
-            sendResponse({ success: true, alreadyInjected: true });
-            return;
+
+      if (!sender.tab || typeof sender.tab.id !== 'number') {
+        sendResponse({ error: 'No sender tab' });
+        return;
+      }
+
+      const tabId = sender.tab.id;
+
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => {
+            return {
+              hasInlineStorage: typeof window.InlineStorage !== 'undefined',
+              hasInlineUI: typeof window.InlineUI !== 'undefined'
+            };
           }
-          
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['inline-storage.js']
-          });
-          
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['inline-ui.js']
-          });
-          
-          sendResponse({ success: true });
-        } catch (e) {
-          console.error('[LS Search] Error injecting dependencies:', e);
-          sendResponse({ error: e.message });
+        });
+
+        const state = results[0]?.result;
+        if (state && state.hasInlineStorage && state.hasInlineUI) {
+          sendResponse({ success: true, alreadyInjected: true });
+          return;
         }
-      });
+
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['inline-storage.js']
+        });
+
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['inline-ui.js']
+        });
+
+        sendResponse({ success: true });
+      } catch (e) {
+        console.error('[LS Search] Error injecting dependencies:', e);
+        sendResponse({ error: e.message });
+      }
     })();
     return true;
   }
@@ -932,48 +924,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: 'Расширение отключено' });
         return;
       }
-      
-      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-        if (tabs.length === 0) {
-          sendResponse({ error: 'No active tab' });
-          return;
-        }
-        
-        const tab = tabs[0];
-        
-        if (!tab.url || !tab.url.startsWith('http')) {
-          console.log('[LS Search] Skipping injection - invalid URL:', tab.url);
-          sendResponse({ error: 'Cannot inject into this URL' });
-          return;
-        }
-        
-        try {
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-              return {
-                hasInlinePanelReady: typeof window.InlinePanelReady !== 'undefined'
-              };
-            }
-          });
-          
-          const state = results[0]?.result;
-          if (state && state.hasInlinePanelReady) {
-            sendResponse({ success: true, alreadyInjected: true });
-            return;
+
+      if (!sender.tab || typeof sender.tab.id !== 'number') {
+        sendResponse({ error: 'No sender tab' });
+        return;
+      }
+
+      const tabId = sender.tab.id;
+
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => {
+            return {
+              hasInlinePanelReady: typeof window.InlinePanelReady !== 'undefined'
+            };
           }
-          
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['inline-panel.js']
-          });
-          
-          sendResponse({ success: true });
-        } catch (e) {
-          console.error('[LS Search] Error injecting inline-panel:', e);
-          sendResponse({ error: e.message });
+        });
+
+        const state = results[0]?.result;
+        if (state && state.hasInlinePanelReady) {
+          sendResponse({ success: true, alreadyInjected: true });
+          return;
         }
-      });
+
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['inline-panel.js']
+        });
+
+        sendResponse({ success: true });
+      } catch (e) {
+        console.error('[LS Search] Error injecting inline-panel:', e);
+        sendResponse({ error: e.message });
+      }
     })();
     return true;
   }

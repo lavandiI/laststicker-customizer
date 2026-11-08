@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/assets/icon128.png" width="96" height="96" alt="LastSticker Search">
+  <img src="docs/assets/icon128.png" width="96" height="96" alt="LastSticker Customizer">
 </p>
 
-<h1 align="center">LastSticker Search</h1>
+<h1 align="center">LastSticker Customizer</h1>
 
 <p align="center">
-  Локальный поиск по сообщениям в ваших диалогах на <a href="https://laststicker.ru">laststicker.ru</a>
+  Поиск, оформление и настройка интерфейса на <a href="https://laststicker.ru">laststicker.ru</a>
 </p>
 
 <p align="center">
@@ -24,10 +24,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/marquee.jpg" alt="LastSticker Search — поиск по сообщениям в диалогах и на форуме" width="100%">
+  <img src="docs/assets/marquee.jpg" alt="LastSticker Customizer — поиск и настройка интерфейса laststicker.ru" width="100%">
 </p>
 
-**LastSticker Search** — расширение Chrome (Manifest V3), которое индексирует ваши собственные диалоги и темы форума на `laststicker.ru` и помогает находить нужные сообщения за секунды. Индексы хранятся локально в браузере и никуда не отправляются.
+**LastSticker Customizer** — расширение Chrome (Manifest V3), которое добавляет поиск по диалогам и форуму, тёмную тему, быструю прокрутку и фильтры для таблиц `laststicker.ru`. Индексы и настройки хранятся локально в браузере и никуда не отправляются.
 
 ## Возможности
 
@@ -50,16 +50,17 @@
 | **Экран обновлений** | После обновления один раз открывается локальная страница с новыми функциями. |
 | **Быстрая прокрутка** | Кнопки «в начало» и «в конец» в правом нижнем углу; работают на всех страницах сайта, учитывают тёмную тему и отключаются в настройках. |
 | **Настройки оформления** | Клик по иконке расширения открывает компактную панель настроек; изменения применяются сразу. |
+| **Фильтр «Я ищу»** | На странице коллекции в колонке «Ищут» оставляет только наклейки с вашей личной отметкой; состояние не сохраняется между визитами. |
 
 <p align="center">
-  <img src="docs/assets/screenshot.png" alt="Панель поиска LastSticker Search на странице диалогов" width="820">
+  <img src="docs/assets/screenshot.png" alt="Панель поиска LastSticker Customizer на странице диалогов" width="820">
 </p>
 
 ## Установка
 
 ### Chrome Web Store
 
-[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.6.3**; **1.6.4** можно установить вручную из раздела релизов.
+[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.6.3**; **1.6.4** можно установить вручную из раздела релизов. Версия **1.7.0** — в разработке.
 
 ### Вручную из ZIP
 
@@ -99,7 +100,7 @@ git checkout v1.6.4
 
 ### Тёмная тема
 
-1. Нажмите на иконку LastSticker Search в панели Chrome.
+1. Нажмите на иконку LastSticker Customizer в панели Chrome.
 2. Убедитесь, что переключатель **«Расширение»** включён.
 3. Включите переключатель **«Тёмная тема»**. Тема всегда применяется ко всему сайту и панелям поиска.
 4. При необходимости выберите палитру **Графит**, **Чёрная** или **Сапфир** и приглушение изображений.

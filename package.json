@@ -1,8 +1,8 @@
 {
   "name": "laststicker-search-extension",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "private": true,
-  "description": "Chrome-расширение для индексации, поиска и перехода к сообщениям на laststicker.ru",
+  "description": "Chrome-расширение для поиска, оформления и настройки интерфейса laststicker.ru",
   "license": "MIT",
   "repository": {
     "type": "git",
