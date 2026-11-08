@@ -104,13 +104,13 @@
 
 ## Small promo tile
 
-Файл: `store/promo-440x280.png` — 440×280 PNG.
+Файл: `store/promo-440x280-1.7.1.png` — 440×280 PNG, 24-бит, без альфа-канала.
 
 Загрузить: **Store listing → Graphic assets → Small promo tile**.
 
 ## Marquee promo tile
 
-Файл: `store/marquee-1400x560.jpg` — 1400×560 JPEG, 24-бит, без альфа-канала.
+Файл: `store/marquee-1400x560-1.7.1.jpg` — 1400×560 JPEG, 24-бит, без альфа-канала.
 
 Загрузить: **Store listing → Graphic assets → Marquee promo tile**.
 
