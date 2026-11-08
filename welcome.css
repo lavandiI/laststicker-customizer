@@ -759,72 +759,6 @@ html[data-theme='dark'] .highlight-demo-avatar {
   background: var(--accent);
 }
 
-.mini-window {
-  display: flex;
-  gap: 5px;
-  margin-top: 16px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.mini-window span {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--accent-2);
-  opacity: 0.55;
-}
-
-.mini-window span:first-child {
-  width: 45%;
-}
-
-.mini-window span:nth-child(2) {
-  width: 25%;
-}
-
-.mini-window span:last-child {
-  width: 15%;
-}
-
-/* ---------------------------------------------------------------- steps */
-
-.steps ol {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.steps li {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-}
-
-.steps b {
-  color: var(--accent);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.steps strong {
-  font-size: 13px;
-}
-
-.steps span {
-  color: var(--muted);
-  font-size: 11.5px;
-}
-
 /* ---------------------------------------------------------------- footer */
 
 .footer {
@@ -860,8 +794,7 @@ html[data-theme='dark'] .highlight-demo-avatar {
     inset: 10px 30px 30px 0;
   }
 
-  .features,
-  .steps ol {
+  .features {
     grid-template-columns: 1fr;
   }
 }
