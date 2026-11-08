@@ -37,6 +37,22 @@ html[data-ls-theme='dark'][data-ls-palette='black'] {
   --ls-input-bg: #0a0c0f;
 }
 
+html[data-ls-theme='dark'][data-ls-palette='sapphire'] {
+  --ls-bg: #0b1220;
+  --ls-bg-deep: #070c16;
+  --ls-surface: #111a2b;
+  --ls-surface-2: #162238;
+  --ls-surface-3: #1d2c47;
+  --ls-border: #2b3a55;
+  --ls-border-soft: #223049;
+  --ls-text: #e7edf9;
+  --ls-muted: #9aa9c4;
+  --ls-link: #8fb0ff;
+  --ls-link-hover: #ff9b95;
+  --ls-accent: #7d9cff;
+  --ls-input-bg: #0d1626;
+}
+
 /* ---------------------------------------------------------------- base */
 
 html[data-ls-theme='dark'][data-ls-scope='site'] {

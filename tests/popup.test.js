@@ -216,6 +216,22 @@ describe('popup settings', () => {
     expect(doc.documentElement.dataset.lsPalette).toBe('black');
   });
 
+  test('switches to the sapphire palette', async () => {
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const sapphire = doc.querySelector(
+      'input[name="palette"][value="sapphire"]',
+    );
+    sapphire.checked = true;
+    change(sapphire);
+    await flush();
+
+    expect(activeStore.getStored().palette).toBe('sapphire');
+    expect(doc.documentElement.dataset.lsPalette).toBe('sapphire');
+  });
+
   test('updates the image dimming preview', async () => {
     const doc = createPopupDocument();
     LSPopup.initPopup(doc);

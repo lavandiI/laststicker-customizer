@@ -93,6 +93,7 @@ describe('welcome page', () => {
     expect(doc.getElementById('heroVersion').textContent).toBe('в 1.6.3');
     expect(doc.getElementById('themeFeature').hidden).toBe(false);
     expect(doc.getElementById('scrollFeature').hidden).toBe(false);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('previousLabel').textContent).toBe(
       'Обновление с 1.5.0',
     );
@@ -132,7 +133,19 @@ describe('welcome page', () => {
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
+    expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('lead').textContent).toContain('сапфиров');
+  });
+
+  test('hides the highlight card when updating from 1.6.4', async () => {
+    const doc = createWelcomeDocument();
+    welcome.initWelcome(
+      doc,
+      '?reason=update&version=1.6.5&previous=1.6.4',
+    );
+    await flush();
+
+    expect(doc.getElementById('highlightFeature').hidden).toBe(true);
   });
 
   test('offers to enable a disabled extension', async () => {

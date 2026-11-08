@@ -25,6 +25,12 @@ describe('theme core', () => {
     });
   });
 
+  test('keeps the sapphire palette', () => {
+    const theme = core.normalizeTheme({ enabled: true, palette: 'sapphire' });
+
+    expect(theme.palette).toBe('sapphire');
+  });
+
   test('replaces invalid values with defaults', () => {
     const theme = core.normalizeTheme({
       enabled: 'yes',

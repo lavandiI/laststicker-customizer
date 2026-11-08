@@ -600,6 +600,78 @@ html[data-theme='dark'] .button.primary {
   border-radius: 0 0 5px 5px;
 }
 
+.highlight-demo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: linear-gradient(
+    100deg,
+    rgba(36, 68, 188, 0.12),
+    rgba(36, 68, 188, 0.03) 70%
+  );
+  box-shadow:
+    inset 3px 0 0 var(--accent),
+    inset 0 0 0 1px rgba(36, 68, 188, 0.22);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.highlight-demo-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #d7e0ff;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.highlight-demo-text {
+  min-width: 0;
+}
+
+.highlight-demo mark {
+  padding: 0 2px;
+  border-radius: 2px;
+  background: var(--yellow);
+  color: #15181d;
+}
+
+.highlight-demo-badge {
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+html[data-theme='dark'] .highlight-demo {
+  background: linear-gradient(
+    100deg,
+    rgba(111, 140, 255, 0.18),
+    rgba(111, 140, 255, 0.04) 70%
+  );
+  box-shadow:
+    inset 3px 0 0 #6f8cff,
+    inset 0 0 0 1px rgba(111, 140, 255, 0.28);
+}
+
+html[data-theme='dark'] .highlight-demo-avatar {
+  background: #1d2c47;
+  color: #8fb0ff;
+}
+
 .swatch {
   width: 25px;
   height: 25px;
@@ -613,6 +685,10 @@ html[data-theme='dark'] .button.primary {
 
 .swatch.black {
   background: #000000;
+}
+
+.swatch.sapphire {
+  background: linear-gradient(135deg, #162238, #3a5bd0);
 }
 
 .swatch.accent {

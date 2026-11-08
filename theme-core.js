@@ -14,7 +14,7 @@
   const THEME_CACHE_KEY = 'ls_search_theme_cache';
   const THEME_VERSION = 1;
 
-  const PALETTES = ['graphite', 'black'];
+  const PALETTES = ['graphite', 'black', 'sapphire'];
   const IMAGE_LEVELS = ['off', 'soft', 'strong'];
 
   const DEFAULT_THEME = Object.freeze({

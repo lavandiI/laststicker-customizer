@@ -161,6 +161,7 @@
     const lead = doc.getElementById('lead');
     const themeFeature = doc.getElementById('themeFeature');
     const scrollFeature = doc.getElementById('scrollFeature');
+    const highlightFeature = doc.getElementById('highlightFeature');
 
     const fromOldVersion =
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
@@ -197,6 +198,7 @@
 
     if (themeFeature) themeFeature.hidden = !fromOldVersion;
     if (scrollFeature) scrollFeature.hidden = !fromBeforeScroll;
+    if (highlightFeature) highlightFeature.hidden = !fromBeforeHighlight;
   }
 
   function initWelcome(doc, search) {

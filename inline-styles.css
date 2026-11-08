@@ -1,5 +1,69 @@
 /* Inline Search Panel Styles - Embedded in page */
 
+/* Sapphire accent tokens. They are shared by the target highlight, selected
+ * search results, focus rings and the indexing indicator. Dark values are
+ * replaced below so the same component rules work in both themes. */
+:root {
+  --ls-sapphire: #2444bc;
+  --ls-sapphire-bright: #3a5bd0;
+  --ls-sapphire-soft: rgba(36, 68, 188, 0.12);
+  --ls-sapphire-soft-2: rgba(36, 68, 188, 0.04);
+  --ls-sapphire-ring: rgba(36, 68, 188, 0.24);
+  --ls-sapphire-glow: rgba(36, 68, 188, 0.12);
+  --ls-sapphire-surface: #ffffff;
+  --ls-sapphire-fill: linear-gradient(
+    100deg,
+    rgba(36, 68, 188, 0.17),
+    rgba(36, 68, 188, 0.05) 56%,
+    rgba(36, 68, 188, 0.02)
+  );
+  --ls-sapphire-selected: inset 4px 0 0 #2444bc,
+    inset 0 0 0 1px rgba(36, 68, 188, 0.2);
+  --ls-sapphire-elevation: inset 4px 0 0 #2444bc,
+    inset 0 0 0 1px rgba(36, 68, 188, 0.22),
+    0 10px 30px rgba(36, 68, 188, 0.12);
+  --ls-sapphire-shimmer: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.62) 46%,
+    rgba(255, 255, 255, 0.16) 53%,
+    transparent 66%
+  );
+  --ls-sapphire-pulse: rgba(36, 68, 188, 0.34);
+  --ls-sapphire-clear: rgba(36, 68, 188, 0);
+}
+
+html[data-ls-theme='dark'] {
+  --ls-sapphire: #6f8cff;
+  --ls-sapphire-bright: #82aaff;
+  --ls-sapphire-soft: rgba(111, 140, 255, 0.18);
+  --ls-sapphire-soft-2: rgba(111, 140, 255, 0.06);
+  --ls-sapphire-ring: rgba(111, 140, 255, 0.3);
+  --ls-sapphire-glow: rgba(111, 140, 255, 0.16);
+  --ls-sapphire-surface: var(--ls-surface, #171b22);
+  --ls-sapphire-fill: linear-gradient(
+    100deg,
+    rgba(111, 140, 255, 0.2),
+    rgba(111, 140, 255, 0.06) 58%,
+    rgba(111, 140, 255, 0.02)
+  );
+  --ls-sapphire-selected: inset 4px 0 0 #6f8cff,
+    inset 0 0 0 1px rgba(111, 140, 255, 0.26);
+  --ls-sapphire-elevation: inset 4px 0 0 #6f8cff,
+    inset 0 0 0 1px rgba(111, 140, 255, 0.28),
+    0 12px 34px rgba(0, 0, 0, 0.35),
+    0 0 26px rgba(111, 140, 255, 0.1);
+  --ls-sapphire-shimmer: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.16) 46%,
+    rgba(255, 255, 255, 0.04) 53%,
+    transparent 66%
+  );
+  --ls-sapphire-pulse: rgba(111, 140, 255, 0.38);
+  --ls-sapphire-clear: rgba(111, 140, 255, 0);
+}
+
 .ls-search-panel {
   background: #fff;
   border: 1px solid #ccc;
@@ -251,7 +315,7 @@
 .ls-btn:focus-visible,
 .ls-search-input:focus-visible,
 .ls-result-item:focus-visible {
-  outline: 2px solid #2444bc;
+  outline: 2px solid var(--ls-sapphire);
   outline-offset: 2px;
 }
 
@@ -275,8 +339,8 @@
 }
 
 .ls-search-input:focus {
-  border-color: #2444bc;
-  box-shadow: 0 0 0 2px rgba(36, 68, 188, 0.16);
+  border-color: var(--ls-sapphire);
+  box-shadow: 0 0 0 3px var(--ls-sapphire-glow);
 }
 
 .ls-search-input::placeholder {
@@ -311,6 +375,30 @@
   color: #666;
   padding: 20px;
   font-size: 12px;
+}
+
+.ls-loading::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ls-sapphire);
+  vertical-align: 1px;
+  animation: ls-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ls-status-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .ls-status-message,
@@ -377,12 +465,12 @@
 }
 
 .ls-result-item:hover {
-  background-color: #f0f5ff;
+  background: var(--ls-sapphire-soft-2);
 }
 
 .ls-result-item--active {
-  background-color: #e8eeff;
-  box-shadow: inset 3px 0 0 #2444bc;
+  background: var(--ls-sapphire-fill), var(--ls-sapphire-surface);
+  box-shadow: var(--ls-sapphire-selected);
 }
 
 .ls-result-message {
@@ -443,10 +531,10 @@
 
 @keyframes ls-target-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(36, 68, 188, 0.34);
+    box-shadow: 0 0 0 0 var(--ls-sapphire-pulse);
   }
   100% {
-    box-shadow: 0 0 0 9px rgba(36, 68, 188, 0);
+    box-shadow: 0 0 0 9px var(--ls-sapphire-clear);
   }
 }
 
@@ -473,18 +561,8 @@
   inset: 0;
   z-index: -1;
   border-radius: 9px;
-  background:
-    linear-gradient(
-      100deg,
-      rgba(36, 68, 188, 0.17),
-      rgba(36, 68, 188, 0.05) 56%,
-      rgba(36, 68, 188, 0.02)
-    ),
-    #ffffff;
-  box-shadow:
-    inset 4px 0 0 #2444bc,
-    inset 0 0 0 1px rgba(36, 68, 188, 0.22),
-    0 10px 30px rgba(36, 68, 188, 0.12);
+  background: var(--ls-sapphire-fill), var(--ls-sapphire-surface);
+  box-shadow: var(--ls-sapphire-elevation);
   pointer-events: none;
   animation: ls-target-life 8s ease-out both;
 }
@@ -496,13 +574,7 @@
   inset: 0;
   z-index: 1;
   border-radius: 9px;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.62) 46%,
-    rgba(255, 255, 255, 0.16) 53%,
-    transparent 66%
-  );
+  background: var(--ls-sapphire-shimmer);
   background-size: 200% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
@@ -523,6 +595,12 @@
   .ls-message-target::after,
   .ls-forum-target::after {
     display: none;
+  }
+
+  .ls-loading::before {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -769,11 +847,6 @@ html[data-ls-theme='dark'][data-ls-scope] .ls-search-input {
   color: var(--ls-panel-text);
 }
 
-html[data-ls-theme='dark'][data-ls-scope] .ls-search-input:focus {
-  border-color: var(--ls-panel-accent);
-  box-shadow: 0 0 0 2px rgba(111, 140, 255, 0.24);
-}
-
 html[data-ls-theme='dark'][data-ls-scope] .ls-search-input::placeholder {
   color: var(--ls-panel-muted);
 }
@@ -786,15 +859,6 @@ html[data-ls-theme='dark'][data-ls-scope] .ls-results {
 html[data-ls-theme='dark'][data-ls-scope] .ls-result-item {
   border-bottom-color: var(--ls-panel-border-soft);
   color: var(--ls-panel-text);
-}
-
-html[data-ls-theme='dark'][data-ls-scope] .ls-result-item:hover {
-  background-color: var(--ls-panel-hover);
-}
-
-html[data-ls-theme='dark'][data-ls-scope] .ls-result-item--active {
-  background-color: var(--ls-panel-active);
-  box-shadow: inset 3px 0 0 var(--ls-panel-accent);
 }
 
 html[data-ls-theme='dark'][data-ls-scope] .ls-result-message {
@@ -872,31 +936,5 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .ls-forum-target .comment_new {
   background: transparent !important;
 }
 
-html[data-ls-theme='dark'][data-ls-scope='site'] .ls-message-target::before,
-html[data-ls-theme='dark'][data-ls-scope='site'] .ls-forum-target::before {
-  background:
-    linear-gradient(
-      100deg,
-      rgba(111, 140, 255, 0.2),
-      rgba(111, 140, 255, 0.06) 58%,
-      rgba(111, 140, 255, 0.02)
-    ),
-    var(--ls-surface, #171b22);
-  box-shadow:
-    inset 4px 0 0 #6f8cff,
-    inset 0 0 0 1px rgba(111, 140, 255, 0.28),
-    0 12px 34px rgba(0, 0, 0, 0.35),
-    0 0 26px rgba(111, 140, 255, 0.1);
-}
-
-html[data-ls-theme='dark'][data-ls-scope='site'] .ls-message-target::after,
-html[data-ls-theme='dark'][data-ls-scope='site'] .ls-forum-target::after {
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.16) 46%,
-    rgba(255, 255, 255, 0.04) 53%,
-    transparent 66%
-  );
-  background-size: 200% 100%;
-}
+/* The dark palette of the target highlight is provided by the sapphire
+ * tokens at the top of this file. */
