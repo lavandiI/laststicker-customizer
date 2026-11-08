@@ -14,6 +14,7 @@ module.exports = [
   'content.js',
   'collections-filter.js',
   'collections-filter.css',
+  'auction-favorites.js',
   'scroll-widget.js',
   'scroll-widget.css',
   'inline-panel.js',

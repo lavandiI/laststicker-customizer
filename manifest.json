@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LastSticker Customizer",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
   "permissions": [
@@ -74,6 +74,22 @@
       ],
       "js": [
         "collections-filter.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://laststicker.ru/auction/*",
+        "http://laststicker.ru/auction/*",
+        "https://www.laststicker.ru/auction/*",
+        "http://www.laststicker.ru/auction/*",
+        "https://laststicker.ru/users/auction/*",
+        "http://laststicker.ru/users/auction/*",
+        "https://www.laststicker.ru/users/auction/*",
+        "http://www.laststicker.ru/users/auction/*"
+      ],
+      "js": [
+        "auction-favorites.js"
       ],
       "run_at": "document_idle"
     }

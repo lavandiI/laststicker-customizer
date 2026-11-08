@@ -28,6 +28,10 @@ describe('runtime package', () => {
     );
   });
 
+  test('includes the auction favorite stars', () => {
+    expect(files).toEqual(expect.arrayContaining(['auction-favorites.js']));
+  });
+
   test('includes the welcome page', () => {
     expect(files).toEqual(
       expect.arrayContaining([

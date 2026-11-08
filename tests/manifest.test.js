@@ -53,4 +53,20 @@ describe('manifest', () => {
       'https://www.laststicker.ru/cards/*',
     );
   });
+
+  test('injects favorite stars on auction list pages', () => {
+    const favoritesScript = manifest.content_scripts.find((script) =>
+      script.js.includes('auction-favorites.js'),
+    );
+
+    expect(favoritesScript).toBeTruthy();
+    expect(favoritesScript.js).toEqual(['auction-favorites.js']);
+    expect(favoritesScript.run_at).toBe('document_idle');
+    expect(favoritesScript.matches).toContain(
+      'https://www.laststicker.ru/auction/*',
+    );
+    expect(favoritesScript.matches).toContain(
+      'https://www.laststicker.ru/users/auction/*',
+    );
+  });
 });
