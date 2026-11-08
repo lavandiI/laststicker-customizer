@@ -62,11 +62,11 @@
 
 ### Chrome Web Store
 
-[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.6.3**; **1.6.4** находится на проверке, версия **1.7.1** подготовлена к публикации. До публикации новую версию можно установить вручную из ZIP.
+[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.6.3**; **1.6.4** находится на проверке, версия **1.7.1** опубликована на GitHub и готовится к публикации в Store. До публикации новую версию можно установить вручную из ZIP.
 
 ### Вручную из ZIP
 
-1. Скачайте `laststicker-search-1.6.4.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-customizer/releases/latest).
+1. Скачайте `laststicker-search-1.7.1.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-customizer/releases/latest).
 2. Распакуйте архив в отдельную папку.
 3. Откройте `chrome://extensions/` и включите **режим разработчика**.
 4. Нажмите **«Загрузить распакованное расширение»** и выберите папку, где лежит `manifest.json`.
@@ -76,7 +76,7 @@
 ```bash
 git clone https://github.com/lavandiI/laststicker-customizer.git
 cd laststicker-customizer
-git checkout v1.6.4
+git checkout v1.7.1
 ```
 
 Далее загрузите папку через `chrome://extensions/` → «Загрузить распакованное расширение».
