@@ -808,12 +808,21 @@ function highlightHashMessage() {
 
   // #msg_<id> is the header block; highlight the whole .user_message row.
   const message = target.closest('.user_message') || target;
+
+  // Restart the CSS animation when the user jumps between messages.
+  if (message._lsTargetTimer) {
+    clearTimeout(message._lsTargetTimer);
+  }
+  message.classList.remove('ls-message-target');
+  void message.offsetWidth;
   message.classList.add('ls-message-target');
+
   message.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
-  setTimeout(() => {
+  message._lsTargetTimer = setTimeout(() => {
     message.classList.remove('ls-message-target');
-  }, 6000);
+    message._lsTargetTimer = null;
+  }, 8000);
 }
 
 window.addEventListener('hashchange', highlightHashMessage);
@@ -857,5 +866,6 @@ if (isCommonJS) {
     extractMessagesFromTalkDocument,
     buildTalkMessageKey,
     dedupeTalkMessages,
+    highlightHashMessage,
   };
 }

@@ -41,7 +41,7 @@
     } catch {
       // Fall through to the default below.
     }
-    return '1.6.3';
+    return '1.6.4';
   }
 
   async function loadState() {
@@ -166,6 +166,8 @@
       !previousVersion || compareVersions(previousVersion, '1.6.0') < 0;
     const fromBeforeScroll =
       !previousVersion || compareVersions(previousVersion, '1.6.3') < 0;
+    const fromBeforeHighlight =
+      !previousVersion || compareVersions(previousVersion, '1.6.4') < 0;
 
     if (versionLabel) versionLabel.textContent = `v${version}`;
     if (heroVersion) heroVersion.textContent = `в ${version}`;
@@ -184,6 +186,9 @@
       } else if (fromBeforeScroll) {
         lead.textContent =
           'Быстрая прокрутка страницы с возможностью отключить её в настройках и один выключатель для всего расширения — чтобы ничего не пропустить.';
+      } else if (fromBeforeHighlight) {
+        lead.textContent =
+          'Найденное сообщение теперь подсвечивается мягким сапфировым акцентом: плавное появление, короткий блик и такое же плавное затухание.';
       } else {
         lead.textContent =
           'Один выключатель для всего расширения, чёрная иконка без поиска и этот экран — чтобы ничего не пропустить.';

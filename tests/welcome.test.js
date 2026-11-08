@@ -132,6 +132,7 @@ describe('welcome page', () => {
     await flush();
 
     expect(doc.getElementById('scrollFeature').hidden).toBe(true);
+    expect(doc.getElementById('lead').textContent).toContain('сапфиров');
   });
 
   test('offers to enable a disabled extension', async () => {

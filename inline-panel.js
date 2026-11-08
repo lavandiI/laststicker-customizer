@@ -849,10 +849,18 @@
 
     if (!target) return;
 
+    // Restart the CSS animation when the user jumps between comments.
+    if (target._lsTargetTimer) {
+      clearTimeout(target._lsTargetTimer);
+    }
+    target.classList.remove('ls-forum-target');
+    void target.offsetWidth;
     target.classList.add('ls-forum-target');
-    setTimeout(() => {
+
+    target._lsTargetTimer = setTimeout(() => {
       target.classList.remove('ls-forum-target');
-    }, 6000);
+      target._lsTargetTimer = null;
+    }, 8000);
   }
 
   // ---------------------------------------------------------------------------

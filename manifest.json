@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LastSticker Search",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "minimum_chrome_version": "109",
   "description": "Индексация, поиск и переход к сообщениям в диалогах и на форуме laststicker.ru",
   "permissions": [
