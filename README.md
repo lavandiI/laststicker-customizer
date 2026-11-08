@@ -59,11 +59,11 @@
 
 ### Chrome Web Store
 
-[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). Chrome будет обновлять расширение автоматически.
+[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине пока доступна версия **1.6.1**; **1.6.4** можно установить вручную из раздела релизов.
 
 ### Вручную из ZIP
 
-1. Скачайте `laststicker-search-1.6.3.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-search/releases/latest).
+1. Скачайте `laststicker-search-1.6.4.zip` со [страницы последнего релиза](https://github.com/lavandiI/laststicker-search/releases/latest).
 2. Распакуйте архив в отдельную папку.
 3. Откройте `chrome://extensions/` и включите **режим разработчика**.
 4. Нажмите **«Загрузить распакованное расширение»** и выберите папку, где лежит `manifest.json`.
@@ -73,7 +73,7 @@
 ```bash
 git clone https://github.com/lavandiI/laststicker-search.git
 cd laststicker-search
-git checkout v1.6.3
+git checkout v1.6.4
 ```
 
 Далее загрузите папку через `chrome://extensions/` → «Загрузить распакованное расширение».
