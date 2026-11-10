@@ -47,4 +47,4 @@
 
 ## Примечание
 
-Версия **1.7.1** опубликована в Chrome Web Store. Старый репозиторий `laststicker-search` архивирован и сохранён как redirect для старых ссылок.
+Версия **1.7.1** опубликована в Chrome Web Store. Старый репозиторий `laststicker-search` удалён; актуальные ссылки ведут на `laststicker-customizer`.
