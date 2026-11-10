@@ -32,9 +32,9 @@ npm run package
 
 Политика должна открываться без входа:
 
-- главная: https://lavandii.github.io/laststicker-search/
-- политика: https://lavandii.github.io/laststicker-search/privacy.html
-- поддержка: https://github.com/lavandiI/laststicker-search/issues
+- главная: https://lavandii.github.io/laststicker-customizer/
+- политика: https://lavandii.github.io/laststicker-customizer/privacy.html
+- поддержка: https://github.com/lavandiI/laststicker-customizer/issues
 
 ## 3. Скриншоты
 

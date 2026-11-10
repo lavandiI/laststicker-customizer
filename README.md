@@ -62,7 +62,7 @@
 
 ### Chrome Web Store
 
-[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.6.3**; **1.6.4** находится на проверке, версия **1.7.1** опубликована на GitHub и готовится к публикации в Store. До публикации новую версию можно установить вручную из ZIP.
+[Установить из Chrome Web Store](https://chromewebstore.google.com/detail/laststicker-search/gnifahljoihlmlekcmgcoaflchhdicoc). В магазине доступна версия **1.7.1**. Вручную её можно установить из ZIP.
 
 ### Вручную из ZIP
 
