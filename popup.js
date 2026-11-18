@@ -280,20 +280,6 @@
     const document = doc || root.document;
     if (!document) return null;
 
-    const version = byId(document, 'version');
-    if (
-      version &&
-      typeof chrome !== 'undefined' &&
-      chrome.runtime &&
-      typeof chrome.runtime.getManifest === 'function'
-    ) {
-      try {
-        version.textContent = `v${chrome.runtime.getManifest().version}`;
-      } catch {
-        version.textContent = '';
-      }
-    }
-
     Promise.all([
       store.loadTheme(),
       loadMasterEnabled(),
