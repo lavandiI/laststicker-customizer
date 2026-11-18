@@ -88,7 +88,12 @@
       const userLink = headerDiv.querySelector('a[href^="/users/"]');
       if (userLink) {
         const href = userLink.getAttribute('href') || '';
-        const selfUserId = getSelfUserId(el.ownerDocument);
+        // The caller can pass the id once per document; otherwise it is looked
+        // up for this message only.
+        const selfUserId =
+          options.selfUserId !== undefined
+            ? options.selfUserId
+            : getSelfUserId(el.ownerDocument);
         const isSelf = selfUserId && href.includes(`/users/${selfUserId}/`);
 
         if (!isSelf) {
@@ -148,8 +153,14 @@
   function extractMessagesFromDocument(doc, options = {}) {
     if (!doc) return [];
 
+    // Resolved once per page instead of once per message.
+    const merged =
+      options.selfUserId !== undefined
+        ? options
+        : { ...options, selfUserId: getSelfUserId(doc) };
+
     return Array.from(doc.querySelectorAll('.user_message'))
-      .map((element) => parseMessageElement(element, options))
+      .map((element) => parseMessageElement(element, merged))
       .filter(Boolean);
   }
 
@@ -175,6 +186,56 @@
     return unique;
   }
 
+  // "12/2024" is a date, not a message counter: a counter has a small first
+  // number and a second part that cannot be a year.
+  function looksLikeDate(first, second) {
+    return first >= 1 && first <= 31 && /^(?:19|20)\d{2}$/.test(String(second));
+  }
+
+  /**
+   * Message counter of a dialog row ("3 / 5" means three new of five).
+   * The value is read from cell text, not from the row markup, so a date or
+   * any other pair of numbers cannot be mistaken for the counter.
+   *
+   * @param {HTMLTableRowElement} row
+   * @returns {number|null}
+   */
+  function parseMessageCount(row) {
+    const cells = Array.from((row && row.cells) || []);
+
+    for (const cell of cells) {
+      const text = String(cell.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const match = text.match(/^(\d{1,5})\s*\/\s*(\d{1,5})$/);
+      if (!match) continue;
+
+      const first = Number(match[1]);
+      const second = Number(match[2]);
+      if (looksLikeDate(first, second)) continue;
+
+      return first + second;
+    }
+
+    // The counter may share its cell with other text; the spaces around the
+    // slash keep dates out of this pass.
+    for (const cell of cells) {
+      const text = String(cell.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const match = text.match(/(?:^|\s)(\d{1,5})\s+\/\s+(\d{1,5})(?:\s|$)/);
+      if (!match) continue;
+
+      const first = Number(match[1]);
+      const second = Number(match[2]);
+      if (looksLikeDate(first, second)) continue;
+
+      return first + second;
+    }
+
+    return null;
+  }
+
   function extractListPage(doc) {
     if (!doc) return { rows: [], pageUrls: [] };
 
@@ -184,9 +245,7 @@
       const talkId = (row.id || '').replace('talk_', '').trim();
       if (!talkId || rowsById.has(talkId)) return;
 
-      const match = row.innerHTML.match(/>(\d+)\s*\/\s*(\d+)</);
-      const messageCount = match ? Number(match[1]) + Number(match[2]) : null;
-      rowsById.set(talkId, { talkId, messageCount });
+      rowsById.set(talkId, { talkId, messageCount: parseMessageCount(row) });
     });
 
     const pageUrls = new Set();
@@ -237,6 +296,7 @@
     buildMessageKey,
     dedupeMessages,
     extractListPage,
+    parseMessageCount,
     getLastLinkedTalkPage,
     parseTalkIdFromUrl,
     parseUnreadParams,

@@ -13,7 +13,7 @@
           <img src="icons/icon48.png" width="40" height="40" alt="" />
           <div class="brand-copy">
             <strong>LastSticker Customizer</strong>
-            <span id="versionLabel">1.7.1</span>
+            <span id="versionLabel">1.8.0</span>
           </div>
         </div>
         <button type="button" class="ghost" id="closeTop">Закрыть</button>
@@ -24,11 +24,12 @@
           <span class="eyebrow" id="eyebrow">Обновление установлено</span>
           <h1>
             Что нового
-            <span class="accent" id="heroVersion">в 1.7.1</span>
+            <span class="accent" id="heroVersion">в 1.8.0</span>
           </h1>
           <p class="lead" id="lead">
-            Звёздочки избранного в аукционах, фильтр «Я ищу» в коллекциях и
-            сапфировая подсветка найденных сообщений — чтобы сайт был удобнее.
+            Индексация больше не теряет прогресс, поиск по форуму листается
+            страницами, а звёздочки в аукционах не грузят список избранного
+            впустую — чтобы сайт был удобнее.
           </p>
           <div class="actions">
             <button type="button" class="button primary" id="openSite">
@@ -135,6 +136,29 @@
               <img src="icons/black/icon32.png" width="32" height="32" alt="" />
               <span>Выкл</span>
             </div>
+          </article>
+
+          <article class="feature" id="reliabilityFeature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7l7-4z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <h3>Индексация доводится до конца</h3>
+            <p>
+              Если браузер усыпил фоновый процесс, задача восстанавливается, а
+              панель сама показывает итог: прогресс, статистику и ошибки. Индекс
+              больше не упирается в квоту хранилища, поиск по форуму листается
+              страницами, а результаты объявляются скринридером.
+            </p>
           </article>
 
           <article class="feature" id="scrollFeature" hidden>
@@ -280,10 +304,11 @@
         <p>
           Данные остаются в вашем браузере. Без аналитики и внешних запросов.
         </p>
-        <span>LastSticker Customizer · <span id="footerVersion">1.7.1</span></span>
+        <span>LastSticker Customizer · <span id="footerVersion">1.8.0</span></span>
       </footer>
     </main>
 
-    <script src="welcome.js"></script>
+    <script src="theme-core.js"></script>
+<script src="welcome.js"></script>
   </body>
 </html>

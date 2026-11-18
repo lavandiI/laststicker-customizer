@@ -47,16 +47,6 @@
     return normalizeTheme(theme).enabled ? 'dark' : 'light';
   }
 
-  function themeDataset(theme) {
-    const normalized = normalizeTheme(theme);
-
-    return {
-      lsTheme: resolveTheme(normalized),
-      lsPalette: normalized.palette,
-      lsImages: normalized.images,
-    };
-  }
-
   return {
     THEME_KEY,
     THEME_CACHE_KEY,
@@ -66,6 +56,5 @@
     IMAGE_LEVELS,
     normalizeTheme,
     resolveTheme,
-    themeDataset,
   };
 });

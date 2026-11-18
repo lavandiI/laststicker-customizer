@@ -159,4 +159,66 @@ describe('theme boot', () => {
 
     expect(document.documentElement.dataset.lsTheme).toBe('light');
   });
+
+  test('caches the light state after the extension is switched off', async () => {
+    const chromeMock = createChromeMock({
+      ls_search_theme: { enabled: true, palette: 'black', images: 'off' },
+      isEnabled: true,
+    });
+    global.chrome = chromeMock;
+    loadThemeScript();
+    await flush();
+
+    expect(document.documentElement.dataset.lsTheme).toBe('dark');
+
+    chromeMock.emit({ isEnabled: { newValue: false } });
+
+    expect(document.documentElement.dataset.lsTheme).toBe('light');
+
+    // The next page load paints from this cache, so it must not say "dark".
+    const cached = JSON.parse(localStorage.getItem('ls_search_theme_cache'));
+    expect(cached.resolved).toBe('light');
+  });
+
+  test('ignores a stale storage snapshot that resolves after a change', async () => {
+    let resolveGet;
+    const pendingGet = new Promise((resolve) => {
+      resolveGet = resolve;
+    });
+    const listeners = [];
+
+    global.chrome = {
+      storage: {
+        local: {
+          get: () => pendingGet,
+          set: async () => {},
+        },
+        onChanged: {
+          addListener: (listener) => listeners.push(listener),
+        },
+      },
+    };
+
+    loadThemeScript();
+    // The user enables the theme while the initial get() is still in flight.
+    listeners.forEach((listener) =>
+      listener(
+        {
+          ls_search_theme: {
+            newValue: { enabled: true, palette: 'sapphire', images: 'off' },
+          },
+        },
+        'local',
+      ),
+    );
+
+    expect(document.documentElement.dataset.lsTheme).toBe('dark');
+
+    // The old snapshot finally arrives and must not roll the theme back.
+    resolveGet({ ls_search_theme: { enabled: false }, isEnabled: true });
+    await flush();
+
+    expect(document.documentElement.dataset.lsTheme).toBe('dark');
+    expect(document.documentElement.dataset.lsPalette).toBe('sapphire');
+  });
 });

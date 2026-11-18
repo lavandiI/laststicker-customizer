@@ -39,9 +39,10 @@
         return chrome.runtime.getManifest().version;
       }
     } catch {
-      // Fall through to the default below.
+      // Fall through to the empty default below.
     }
-    return '1.7.1';
+    // No hardcoded fallback: a stale version in the page is worse than none.
+    return '';
   }
 
   async function loadState() {
@@ -60,8 +61,16 @@
   }
 
   function applyTheme(doc, theme, masterEnabled) {
+    // The stored value can be a legacy record ({mode: 'dark'}), so it goes
+    // through the same normalization the site and the popup use.
+    const core = root.LSTheme;
+    const normalized =
+      core && typeof core.normalizeTheme === 'function'
+        ? core.normalizeTheme(theme)
+        : theme;
+
     const dark = Boolean(
-      masterEnabled !== false && theme && theme.enabled === true,
+      masterEnabled !== false && normalized && normalized.enabled === true,
     );
     doc.documentElement.dataset.theme = dark ? 'dark' : 'light';
   }
@@ -173,9 +182,9 @@
     const fromBeforeSwitch =
       !previousVersion || compareVersions(previousVersion, '1.6.1') < 0;
 
-    if (versionLabel) versionLabel.textContent = `v${version}`;
-    if (heroVersion) heroVersion.textContent = `в ${version}`;
-    if (footerVersion) footerVersion.textContent = version;
+    if (versionLabel) versionLabel.textContent = version ? `v${version}` : '';
+    if (heroVersion) heroVersion.textContent = version ? `в ${version}` : '';
+    if (footerVersion) footerVersion.textContent = version || '';
 
     if (previousLabel) {
       previousLabel.textContent = previousVersion
@@ -184,10 +193,12 @@
     }
 
     if (lead) {
-      lead.textContent =
-        'Сапфировая подсветка найденных сообщений, фильтр «Я ищу» в коллекциях и звёздочки избранного в аукционах — главное в ' +
-        version +
-        '.';
+      const summary =
+        'Индексация больше не теряет прогресс, поиск по форуму листается страницами, ' +
+        'а звёздочки в аукционах не грузят список избранного впустую';
+      lead.textContent = version
+        ? `${summary} — главное в ${version}.`
+        : `${summary}.`;
     }
 
     if (themeFeature) themeFeature.hidden = !fromOldVersion;

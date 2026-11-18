@@ -1,10 +1,15 @@
 // Inline UI - creates search panel embedded in the page
 // For embedding directly into the page
 
-// Debug logging function - saves to localStorage
-  function debugLog() {
-    // Debug logging disabled
-  }
+// Debug output stays silent in production builds: flip the flag while working
+// on the panel to see the call log in the console.
+// `var`, not `const`: this file shares the page scope with inline-storage.js,
+// which declares the same helper.
+var DEBUG_LOG = false;
+
+function debugLog(...args) {
+  if (DEBUG_LOG) console.log(...args);
+}
 
 /**
  * @typedef {import('./inline-storage.js').StickerMessage} StickerMessage
@@ -43,7 +48,7 @@ function createTalkSearchPanel() {
   }
   
   if (!insertContainer) {
-    console.log('[LS Search] Could not find container for talk panel');
+    debugLog('[LS Search] Could not find container for talk panel');
     return;
   }
   
@@ -90,6 +95,9 @@ function createTalkSearchPanel() {
   searchInput.spellcheck = false;
   searchInput.setAttribute('aria-label', 'Поиск в текущем диалоге');
   searchInput.setAttribute('aria-controls', 'ls-results');
+  searchInput.setAttribute('role', 'combobox');
+  searchInput.setAttribute('aria-autocomplete', 'list');
+  searchInput.setAttribute('aria-expanded', 'false');
   
   searchContainer.appendChild(searchInput);
   
@@ -97,6 +105,12 @@ function createTalkSearchPanel() {
   const results = document.createElement('div');
   results.id = 'ls-results';
   results.className = 'ls-results';
+  // Results are a listbox so keyboard navigation and aria-selected are
+  // announced by screen readers; the items below are its options.
+  results.setAttribute('role', 'listbox');
+  results.setAttribute('aria-label', 'Сообщения диалога');
+  // The combobox state (aria-expanded) belongs to the input.
+  results._lsInput = searchInput;
   
   // Add all to panel
   panel.appendChild(stats);
@@ -127,7 +141,7 @@ function createTalkSearchPanel() {
   
   resultsContainer = results;
   
-  console.log('[LS Search] Talk search panel created, talkId:', currentTalkId);
+  debugLog('[LS Search] Talk search panel created, talkId:', currentTalkId);
   
   return {
     searchInput,
@@ -190,7 +204,7 @@ function createSearchPanel() {
       }
     }
     
-    console.log('[LS Search] Could not find navigation area');
+    debugLog('[LS Search] Could not find navigation area');
     debugLog('UI', 'ERROR: Could not find any suitable container element');
     return;
   }
@@ -342,6 +356,9 @@ function createSearchPanel() {
   searchInput.spellcheck = false;
   searchInput.setAttribute('aria-label', 'Поиск по сообщениям');
   searchInput.setAttribute('aria-controls', 'ls-results');
+  searchInput.setAttribute('role', 'combobox');
+  searchInput.setAttribute('aria-autocomplete', 'list');
+  searchInput.setAttribute('aria-expanded', 'false');
 
   searchContainer.appendChild(searchInput);
   
@@ -349,7 +366,9 @@ function createSearchPanel() {
   const results = document.createElement('div');
   results.id = 'ls-results';
   results.className = 'ls-results';
+  results.setAttribute('role', 'listbox');
   results.setAttribute('aria-label', 'Результаты поиска');
+  results._lsInput = searchInput;
   
   // Add all to panel
   panel.appendChild(controls);
@@ -371,7 +390,7 @@ function createSearchPanel() {
   // Store reference
   resultsContainer = results;
   
-  console.log('[LS Search] Search panel created');
+  debugLog('[LS Search] Search panel created');
   debugLog('UI', 'Panel successfully inserted into DOM');
   
   // Verify buttons exist in DOM
@@ -447,8 +466,13 @@ function formatBytes(bytes) {
   return `${(bytes / mb).toFixed(1).replace('.', ',')} МБ`;
 }
 
+// The dialog index is one JSON payload that search loads and parses on every
+// keystroke. The storage quota is lifted by "unlimitedStorage", so a large
+// index is a speed problem, not a hard limit.
+const LARGE_INDEX_BYTES = 8 * 1024 * 1024;
+
 /**
- * Render the stored index size and warn when it approaches the quota.
+ * Render the stored index size and hint that a large index slows search down.
  * @param {number|null} bytes
  */
 function renderIndexSize(bytes) {
@@ -456,10 +480,10 @@ function renderIndexSize(bytes) {
   if (!sizeEl) return;
 
   sizeEl.textContent = formatBytes(bytes);
-  const warning = typeof bytes === 'number' && bytes >= 8 * 1024 * 1024;
-  sizeEl.classList.toggle('ls-stat-warning', warning);
-  sizeEl.title = warning
-    ? 'Индекс близок к лимиту chrome.storage.local (10 МБ)'
+  const large = typeof bytes === 'number' && bytes >= LARGE_INDEX_BYTES;
+  sizeEl.classList.toggle('ls-stat-warning', large);
+  sizeEl.title = large
+    ? 'Большой индекс: поиск загружает его целиком, поэтому может замедлиться'
     : 'Размер локального индекса';
 }
 
@@ -584,7 +608,33 @@ function showStatus(message, type = 'success') {
  */
 function showLoading() {
   if (!resultsContainer) return;
+  setResultsExpanded(resultsContainer, false);
   resultsContainer.innerHTML = '<div class="ls-loading">Идёт индексация сообщений...</div>';
+}
+
+/**
+ * Keep the combobox state in sync with what the listbox shows.
+ *
+ * A listbox may only contain options, so the role is dropped while the empty
+ * state or the loading hint is displayed; those texts are then plain content
+ * and are read normally.
+ *
+ * @param {HTMLElement|null} container
+ * @param {boolean} expanded
+ */
+function setResultsExpanded(container, expanded) {
+  if (!container) return;
+
+  if (expanded) {
+    container.setAttribute('role', 'listbox');
+  } else {
+    container.removeAttribute('role');
+  }
+
+  const input = container._lsInput;
+  if (input) {
+    input.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
 }
 
 /**
@@ -593,6 +643,8 @@ function showLoading() {
  */
 function renderEmptyState(reason) {
   if (!resultsContainer) return;
+
+  setResultsExpanded(resultsContainer, false);
   
   if (reason === 'no-query') {
     resultsContainer.innerHTML = '<div class="ls-empty-state">Введите запрос для поиска</div>';
@@ -612,6 +664,8 @@ function renderEmptyState(reason) {
  */
 function renderResults(results, query, totalCount, limit, canLoadMore = false) {
   if (!resultsContainer) return;
+
+  setResultsExpanded(resultsContainer, results.length > 0);
   
   if (!results.length) {
     resultsContainer.innerHTML = '<div class="ls-no-results">Ничего не найдено</div>';
@@ -646,7 +700,7 @@ function renderResults(results, query, totalCount, limit, canLoadMore = false) {
               const resultIndex = resultIndexes.get(msg);
 
               return `
-                <${tag} class="ls-result-item" id="ls-result-${resultIndex}" data-result-index="${resultIndex}" aria-selected="false"${href}>
+                <${tag} class="ls-result-item" role="option" id="ls-result-${resultIndex}" data-result-index="${resultIndex}" aria-selected="false"${href}>
                   <div class="ls-result-message">${text}</div>
                   <div class="ls-result-date">${date}</div>
                 </${tag}>
@@ -683,7 +737,10 @@ function highlightText(text, query) {
   if (!query) return escapeHtml(text);
   
   const escapedText = escapeHtml(text);
-  const queryRegex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+  // The query is matched against the escaped text, so it has to be escaped the
+  // same way; otherwise "&", "<" and quotes never match anything.
+  const escapedQuery = escapeHtml(query);
+  const queryRegex = new RegExp(`(${escapeRegex(escapedQuery)})`, 'gi');
   
   return escapedText.replace(queryRegex, '<span class="ls-highlight">$1</span>');
 }
@@ -820,7 +877,7 @@ function createForumSearchPanel(options = {}) {
   }
 
   if (!parent) {
-    console.log('[LS Search] Could not find container for forum panel');
+    debugLog('[LS Search] Could not find container for forum panel');
     return;
   }
 
@@ -915,13 +972,18 @@ function createForumSearchPanel(options = {}) {
   searchInput.spellcheck = false;
   searchInput.setAttribute('aria-label', 'Поиск по сообщениям форума');
   searchInput.setAttribute('aria-controls', 'ls-forumResults');
+  searchInput.setAttribute('role', 'combobox');
+  searchInput.setAttribute('aria-autocomplete', 'list');
+  searchInput.setAttribute('aria-expanded', 'false');
 
   searchContainer.appendChild(searchInput);
 
   const results = document.createElement('div');
   results.id = 'ls-forumResults';
   results.className = 'ls-results';
+  results.setAttribute('role', 'listbox');
   results.setAttribute('aria-label', 'Результаты поиска по форуму');
+  results._lsInput = searchInput;
 
   panel.appendChild(controls);
   panel.appendChild(topicStats);
@@ -1060,6 +1122,8 @@ function renderForumEmptyState(reason) {
   const container = document.getElementById('ls-forumResults');
   if (!container) return;
 
+  setResultsExpanded(container, false);
+
   if (reason === 'no-query') {
     container.innerHTML =
       '<div class="ls-empty-state">Введите запрос для поиска по форуму</div>';
@@ -1144,7 +1208,7 @@ function renderForumResultItem(result, index, query) {
   const tag = result.url ? 'a' : 'div';
 
   return `
-    <${tag} class="ls-result-item" id="ls-forum-result-${index}" data-result-index="${index}" aria-selected="false"${href}>
+    <${tag} class="ls-result-item" role="option" id="ls-forum-result-${index}" data-result-index="${index}" aria-selected="false"${href}>
       <div class="ls-result-message">${text}</div>
       <div class="ls-result-meta">${meta}${escapeHtml(page)}${escapeHtml(kind)}</div>
     </${tag}>
@@ -1164,6 +1228,8 @@ function renderForumResultItem(result, index, query) {
 function renderForumResults(results, query, totalCount, limit, options = {}) {
   const container = document.getElementById('ls-forumResults');
   if (!container) return;
+
+  setResultsExpanded(container, Boolean(results && results.length));
 
   if (!results || !results.length) {
     container.innerHTML = '<div class="ls-no-results">Ничего не найдено</div>';
@@ -1204,7 +1270,7 @@ function renderForumResults(results, query, totalCount, limit, options = {}) {
         : '';
       const headerTag = group.url ? 'a' : 'span';
       parts.push(`
-        <div class="ls-forum-topic-group">
+        <div class="ls-forum-topic-group" role="group">
           <div class="ls-forum-topic-header">
             <${headerTag} class="ls-forum-topic-link"${headerHref}>${highlightText(
               group.title,
@@ -1227,9 +1293,15 @@ function renderForumResults(results, query, totalCount, limit, options = {}) {
   }
 
   if (totalCount > limit) {
+    // The scan stops early, so `totalCount` is only a lower bound then; show
+    // the number of visible matches instead of an invented total.
+    const summary = options.truncated
+      ? `Показаны первые ${limit} совпадений`
+      : `Показаны первые ${limit} из ${totalCount} совпадений`;
+
     parts.push(`
       <div class="ls-results-footer">
-        Показаны первые ${limit} из ${totalCount} совпадений
+        ${summary}
         ${
           options.canLoadMore
             ? '<button type="button" id="ls-forumLoadMoreBtn" class="ls-btn ls-btn-secondary">Показать ещё</button>'

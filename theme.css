@@ -24,6 +24,20 @@ html[data-ls-theme='dark'] {
   --ls-yellow: #ffd75e;
   --ls-yellow-bg: rgba(255, 215, 94, 0.18);
   --ls-input-bg: #12161c;
+
+  /* Accent surfaces. These used to be literal colours tuned for "graphite",
+     which left blue-green islands in the black and sapphire palettes. */
+  --ls-ok-bg: #16281f;
+  --ls-warn-bg: #3a2f12;
+  --ls-danger-bg: #2e1a1a;
+  --ls-hidden-bg: #3a1d2a;
+  --ls-selected: #2a3a6a;
+  --ls-new-comment-bg: #1d2a33;
+  --ls-special: #4b4b9a;
+  --ls-counter-bg: #4a5a8a;
+  --ls-badge-bg: #ff6b35;
+  /* White on #ff6b35 is only 2.8:1; dark text on the same orange is 6.6:1. */
+  --ls-badge-text: #1a1200;
 }
 
 html[data-ls-theme='dark'][data-ls-palette='black'] {
@@ -35,6 +49,14 @@ html[data-ls-theme='dark'][data-ls-palette='black'] {
   --ls-border: #262b33;
   --ls-border-soft: #1c2128;
   --ls-input-bg: #0a0c0f;
+  --ls-ok-bg: #0e1a13;
+  --ls-warn-bg: #1e1908;
+  --ls-danger-bg: #1a0e0e;
+  --ls-hidden-bg: #190c14;
+  --ls-selected: #1a2140;
+  --ls-new-comment-bg: #121820;
+  --ls-special: #2a2a5e;
+  --ls-counter-bg: #2b2f3a;
 }
 
 html[data-ls-theme='dark'][data-ls-palette='sapphire'] {
@@ -51,6 +73,14 @@ html[data-ls-theme='dark'][data-ls-palette='sapphire'] {
   --ls-link-hover: #ff9b95;
   --ls-accent: #7d9cff;
   --ls-input-bg: #0d1626;
+  --ls-ok-bg: #10241c;
+  --ls-warn-bg: #2b2410;
+  --ls-danger-bg: #2a1616;
+  --ls-hidden-bg: #241528;
+  --ls-selected: #24406b;
+  --ls-new-comment-bg: #16263a;
+  --ls-special: #34487f;
+  --ls-counter-bg: #35496f;
 }
 
 /* ---------------------------------------------------------------- base */
@@ -153,6 +183,16 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .group legend {
 
 /* Inline white backgrounds are common in the site markup. Attribute selectors
    keep those pages readable without a global "*" rule. */
+
+/* A table cell with an inline background that is not in the lists below would
+   keep a light fill while the cell text is already dark-theme coloured. Paint
+   such cells as a surface. :where() keeps the element type out of the
+   specificity count, so this rule does not outweigh the colour-specific rules
+   that follow. */
+html[data-ls-theme='dark'][data-ls-scope='site'] :where(td, tr)[style*='background'] {
+  background-color: var(--ls-surface) !important;
+}
+
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#ffffff'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color: #ffffff'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#fff'],
@@ -193,7 +233,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background:#f7d9aa'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background: #f7d9aa'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#f7d9aa'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color: #f7d9aa'] {
-  background-color: #3a2f12 !important;
+  background-color: var(--ls-warn-bg) !important;
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background:#eafce9'],
@@ -204,7 +244,16 @@ html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#eafc
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color: #eafce9'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#e4fae9'],
 html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color: #e4fae9'] {
-  background-color: #16281f !important;
+  background-color: var(--ls-ok-bg) !important;
+}
+
+/* The pink "нужно" cell colour also appears as an inline style, not only as a
+   bgcolor attribute. */
+html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background:#fce4e2'],
+html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background: #fce4e2'],
+html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color:#fce4e2'],
+html[data-ls-theme='dark'][data-ls-scope='site'] [style*='background-color: #fce4e2'] {
+  background-color: var(--ls-danger-bg) !important;
 }
 
 /* Inline greys and accent colours. */
@@ -249,12 +298,12 @@ html[data-ls-theme='dark'][data-ls-scope='site'] td[bgcolor='#e4fae9'],
 html[data-ls-theme='dark'][data-ls-scope='site'] tr[bgcolor='#e4fae9'],
 html[data-ls-theme='dark'][data-ls-scope='site'] td[bgcolor='#eafce9'],
 html[data-ls-theme='dark'][data-ls-scope='site'] tr[bgcolor='#eafce9'] {
-  background-color: #16281f !important;
+  background-color: var(--ls-ok-bg) !important;
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] td[bgcolor='#fce4e2'],
 html[data-ls-theme='dark'][data-ls-scope='site'] tr[bgcolor='#fce4e2'] {
-  background-color: #2e1a1a !important;
+  background-color: var(--ls-danger-bg) !important;
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] td[bgcolor='#ffffff'],
@@ -359,13 +408,14 @@ html[data-ls-theme='dark'][data-ls-scope='site'] #left_menu div.rounded a:visite
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] #left_menu .counter {
-  background: #4a5a8a;
+  background: var(--ls-counter-bg);
   color: #ffffff;
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] #left_menu .new_msg_info {
-  background: #ff6b35;
-  color: #ffffff;
+  background: var(--ls-badge-bg);
+  color: var(--ls-badge-text);
+  font-weight: 700;
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] #form_login label {
@@ -534,7 +584,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] dl.comment_new dt {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] dl.comment_new dt.new_comment {
-  background: #1d2a33;
+  background: var(--ls-new-comment-bg);
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] dl.comment_new dt span {
@@ -558,7 +608,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] dl.comment_new dd .img a img {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] dl.comment_new dd .hide_comment {
-  background: #3a1d2a;
+  background: var(--ls-hidden-bg);
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] div.forum_content a img {
@@ -601,7 +651,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .bg_sel {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .bg_hide {
-  background: #3a1d2a;
+  background: var(--ls-hidden-bg);
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .bg_restore {
@@ -622,7 +672,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .b_almum_block img {
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .adv_shop,
 html[data-ls-theme='dark'][data-ls-scope='site'] .adv_cardshop {
-  background: #16281f;
+  background: var(--ls-ok-bg);
   border-color: #2f5a3f;
 }
 
@@ -708,11 +758,11 @@ html[data-ls-theme='dark'][data-ls-scope='site'] div.mark_gold {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] div.mark_good {
-  background: #16281f;
+  background: var(--ls-ok-bg);
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] div.mark_bad {
-  background: #2e1a1a;
+  background: var(--ls-danger-bg);
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] div.mark_neutral {
@@ -788,7 +838,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .sel {
 
 html[data-ls-theme='dark'][data-ls-scope='site'] a.sel_w,
 html[data-ls-theme='dark'][data-ls-scope='site'] .sel_w {
-  background: #2a3a6a;
+  background: var(--ls-selected);
   color: var(--ls-text) !important;
 }
 
@@ -803,7 +853,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .swap_numbers b {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .ex_post {
-  background: #4b4b9a;
+  background: var(--ls-special);
   color: #ffffff !important;
 }
 
@@ -882,7 +932,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .ac_results li {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .ac_over {
-  background: #2a3a6a;
+  background: var(--ls-selected);
   color: #ffffff;
 }
 
@@ -909,7 +959,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .select2-search input {
 }
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .select2-results .select2-highlighted {
-  background: #2a3a6a;
+  background: var(--ls-selected);
   color: #ffffff;
 }
 
@@ -942,7 +992,7 @@ html[data-ls-theme='dark'][data-ls-scope='site'] .ui-widget-content .ui-state-de
 
 html[data-ls-theme='dark'][data-ls-scope='site'] .ui-state-hover,
 html[data-ls-theme='dark'][data-ls-scope='site'] .ui-state-focus {
-  background: #2a3a6a;
+  background: var(--ls-selected);
   border-color: var(--ls-accent);
   color: #ffffff;
 }
@@ -1063,6 +1113,41 @@ html[data-ls-theme='dark'][data-ls-scope='site'][data-ls-images='strong']
 /* ---------------------------------------------------------------- print */
 
 @media print {
+  /* Paper is white, and before this block only body was reset: headings,
+     links, cells and semantic colours kept their dark-theme values, so the
+     page printed as light text on white. Overriding the tokens fixes all of
+     them in one place. */
+  html[data-ls-theme='dark'][data-ls-scope='site'] {
+    --ls-bg: #ffffff;
+    --ls-bg-deep: #ffffff;
+    --ls-surface: #ffffff;
+    --ls-surface-2: #f4f4f4;
+    --ls-surface-3: #ececec;
+    --ls-border: #cccccc;
+    --ls-border-soft: #dddddd;
+    --ls-text: #111111;
+    --ls-muted: #444444;
+    --ls-link: #0b3aa8;
+    --ls-link-hover: #0b3aa8;
+    --ls-accent: #2444bc;
+    --ls-input-bg: #ffffff;
+    --ls-green: #1a6b3c;
+    --ls-red: #8f1c14;
+    --ls-yellow: #8a6400;
+    --ls-yellow-bg: rgba(138, 100, 0, 0.16);
+    --ls-ok-bg: #eef7f0;
+    --ls-warn-bg: #fdf6e3;
+    --ls-danger-bg: #fbeeee;
+    --ls-hidden-bg: #f4f0f4;
+    --ls-selected: #e4e9f7;
+    --ls-new-comment-bg: #f2f4f7;
+    /* These two carry white text, so they stay dark on paper. */
+    --ls-special: #3f3f7a;
+    --ls-counter-bg: #44506b;
+    --ls-badge-bg: #ffb27a;
+    --ls-badge-text: #1a1200;
+  }
+
   html[data-ls-theme='dark'][data-ls-scope='site'] body {
     background: #ffffff !important;
     color: #000000 !important;

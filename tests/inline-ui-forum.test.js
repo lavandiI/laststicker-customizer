@@ -109,8 +109,46 @@ describe('forum inline UI', () => {
     expect(results.textContent).toContain('стр. 2');
   });
 
-  test('highlights an author match when the message text has no match', () => {
+  test('marks forum results as a listbox with topic groups', () => {
     window.InlineUI.renderForumResults(
+      [
+        {
+          key: 'forum:1:2',
+          kind: 'comment',
+          postId: '1',
+          commentId: '2',
+          topicTitle: 'Тема',
+          author: 'Автор',
+          timestamp: 10,
+          text: 'пакетик',
+          page: 1,
+          url: 'https://www.laststicker.ru/blog/post1/#c2',
+        },
+      ],
+      'пакетик',
+      1,
+      200,
+      { groupByTopic: true, canLoadMore: false },
+    );
+
+    const container = document.getElementById('ls-forumResults');
+    expect(container.getAttribute('role')).toBe('listbox');
+    expect(
+      container.querySelector('.ls-forum-topic-group').getAttribute('role'),
+    ).toBe('group');
+    expect(
+      container.querySelector('.ls-result-item').getAttribute('role'),
+    ).toBe('option');
+
+    const input = document.getElementById('ls-forumSearchInput');
+    expect(input.getAttribute('role')).toBe('combobox');
+    expect(input.getAttribute('aria-expanded')).toBe('true');
+
+    window.InlineUI.renderForumEmptyState('no-query');
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  test('highlights an author match when the message text has no match', () => {    window.InlineUI.renderForumResults(
       [
         {
           key: 'forum:1:2',
@@ -214,5 +252,43 @@ describe('forum inline UI', () => {
     expect(topicStats.hidden).toBe(false);
     expect(topicStats.textContent).toContain('В теме: 24 сообщений');
     expect(topicStats.textContent).toContain('индекс 10 КБ');
+  });
+
+  test('does not invent a total when the search was truncated', () => {
+    const result = {
+      key: 'forum:1:1',
+      kind: 'comment',
+      postId: '1',
+      commentId: '1',
+      topicTitle: 'Тема',
+      author: 'Автор',
+      timestamp: 10,
+      text: 'пакетик',
+      page: 1,
+      url: 'https://www.laststicker.ru/blog/post1/#c1',
+    };
+
+    window.InlineUI.renderForumResults([result], 'пакетик', 201, 200, {
+      groupByTopic: true,
+      canLoadMore: true,
+      truncated: true,
+    });
+
+    const footer = document.querySelector('#ls-forumResults .ls-results-footer');
+    expect(footer.textContent).toContain('Показаны первые 200 совпадений');
+    expect(footer.textContent).not.toContain('из 201');
+    expect(document.getElementById('ls-forumLoadMoreBtn')).not.toBeNull();
+
+    window.InlineUI.renderForumResults([result], 'пакетик', 201, 200, {
+      groupByTopic: true,
+      canLoadMore: false,
+      truncated: false,
+    });
+
+    const exactFooter = document.querySelector(
+      '#ls-forumResults .ls-results-footer',
+    );
+    expect(exactFooter.textContent).toContain('Показаны первые 200 из 201');
+    expect(document.getElementById('ls-forumLoadMoreBtn')).toBeNull();
   });
 });

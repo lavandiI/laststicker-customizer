@@ -68,6 +68,9 @@ describe('welcome page', () => {
   let welcome;
 
   beforeAll(() => {
+    // welcome.html loads theme-core.js before welcome.js, so the page can
+    // normalize a legacy theme record.
+    global.LSTheme = require('../theme-core.js');
     welcome = require('../welcome.js');
   });
 
@@ -97,7 +100,7 @@ describe('welcome page', () => {
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('Сапфировая');
+    expect(doc.getElementById('lead').textContent).toContain('Индексация');
     expect(doc.getElementById('previousLabel').textContent).toBe(
       'Обновление с 1.5.0',
     );
@@ -149,9 +152,9 @@ describe('welcome page', () => {
     expect(doc.getElementById('highlightFeature').hidden).toBe(false);
     expect(doc.getElementById('huntFeature').hidden).toBe(false);
     expect(doc.getElementById('favoriteFeature').hidden).toBe(false);
-    expect(doc.getElementById('lead').textContent).toContain('Сапфировая');
-    expect(doc.getElementById('lead').textContent).toContain('Я ищу');
-    expect(doc.getElementById('lead').textContent).toContain('звёздочки');
+    expect(doc.getElementById('reliabilityFeature').hidden).toBe(false);
+    expect(doc.getElementById('lead').textContent).toContain('Индексация');
+    expect(doc.getElementById('lead').textContent).toContain('главное в 1.7.1');
   });
 
   test('keeps the release highlights when updating from 1.6.4', async () => {
@@ -237,5 +240,33 @@ describe('welcome page', () => {
     expect(welcome.compareVersions('1.6.1', '1.6.0')).toBe(1);
     expect(welcome.compareVersions('1.6.0', '1.6.0')).toBe(0);
     expect(welcome.compareVersions('1.5.0', '1.6.0')).toBe(-1);
+  });
+
+  test('understands a legacy theme record', async () => {
+    global.chrome = createChromeMock({
+      ls_search_theme: { mode: 'dark' },
+      isEnabled: true,
+    });
+
+    const doc = createWelcomeDocument();
+    welcome.initWelcome(doc, '?version=1.7.1&previous=1.5.0');
+    await flush();
+
+    expect(doc.documentElement.dataset.theme).toBe('dark');
+  });
+
+  test('does not invent a version when the manifest is unavailable', async () => {
+    chromeMock.runtime.getManifest = () => {
+      throw new Error('no manifest');
+    };
+
+    const doc = createWelcomeDocument();
+    welcome.initWelcome(doc, '');
+    await flush();
+
+    expect(doc.getElementById('versionLabel').textContent).toBe('');
+    expect(doc.getElementById('heroVersion').textContent).toBe('');
+    expect(doc.getElementById('lead').textContent).toContain('Индексация');
+    expect(doc.getElementById('lead').textContent).not.toContain('главное в');
   });
 });

@@ -1,6 +1,15 @@
 // Inline Storage - extension storage with a localStorage fallback for userscript mode.
 // For embedding directly into the page.
 
+// Debug output stays silent in production builds: flip the flag while debugging.
+// `var`, not `const`: this file shares the page scope with inline-ui.js, which
+// declares the same helper.
+var DEBUG_LOG = false;
+
+function debugLog(...args) {
+  if (DEBUG_LOG) console.log(...args);
+}
+
 const LS_KEY_MESSAGES = 'ls_search_messages';
 const LS_KEY_LAST_QUERY = 'ls_search_last_query';
 const LS_KEY_LAST_INDEXED_AT = 'ls_search_last_indexed_at';
@@ -22,6 +31,12 @@ const isOffscreenContext =
 const useStorageRpc = !hasChromeStorage && hasChromeRuntime;
 
 let migrationPromise = null;
+
+// The panel reads the index on every keystroke while searching. Parsing the
+// whole JSON payload each time is the expensive part, so the normalized array
+// is cached until the index changes.
+let messagesCache = null;
+let messagesCachePromise = null;
 
 function storageRpc(action, payload = {}) {
   return new Promise((resolve, reject) => {
@@ -131,7 +146,7 @@ async function migrateOffscreenLocalStorage() {
 
     await storageRpc('lsStorageSet', { items: values });
     removeOffscreenLocalKeys();
-    console.log('[LS Search] Migrated offscreen localStorage to chrome.storage');
+    debugLog('[LS Search] Migrated offscreen localStorage to chrome.storage');
   } catch (e) {
     // Keep local data if the copy failed, so a later attempt can retry.
     console.error('[LS Search] Offscreen storage migration failed:', e);
@@ -206,6 +221,8 @@ async function storageGet(key) {
 async function storageSet(key, value) {
   await ensureMigrated();
 
+  if (key === LS_KEY_MESSAGES) invalidateMessagesCache();
+
   if (useStorageRpc) {
     await storageRpc('lsStorageSet', { items: { [key]: value } });
     localRemove(key);
@@ -223,6 +240,8 @@ async function storageSet(key, value) {
 
 async function storageRemove(key) {
   await ensureMigrated();
+
+  if (key === LS_KEY_MESSAGES) invalidateMessagesCache();
 
   if (useStorageRpc) {
     await storageRpc('lsStorageRemove', { keys: [key] });
@@ -248,22 +267,75 @@ async function storageRemove(key) {
  */
 
 /**
- * Load all stored messages.
+ * Read and normalize the index from storage. Throws on storage errors, so
+ * callers can decide whether a failure should be cached or ignored.
+ * @returns {Promise<StickerMessage[]>}
+ */
+async function readMessages() {
+  const raw = await storageGet(LS_KEY_MESSAGES);
+  if (!raw) return [];
+
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.map(normalizeMessage);
+}
+
+/**
+ * Load all stored messages. Storage errors are reported and treated as an
+ * empty index, so a broken read never breaks the panel.
  * @returns {Promise<StickerMessage[]>}
  */
 async function loadMessages() {
   try {
-    const raw = await storageGet(LS_KEY_MESSAGES);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.map(normalizeMessage);
+    return await readMessages();
   } catch (e) {
     console.error('[LS Search] Error loading messages:', e);
     return [];
   }
+}
+
+// The panel reads the index on every keystroke while searching. Parsing the
+// whole JSON payload each time is the expensive part, so the normalized array
+// is cached until the index changes.
+function invalidateMessagesCache() {
+  messagesCache = null;
+  messagesCachePromise = null;
+}
+
+/**
+ * Cached variant of {@link loadMessages} for read-only UI paths.
+ * The returned array is shared: callers must not mutate it.
+ * @returns {Promise<StickerMessage[]>}
+ */
+async function getMessages() {
+  if (messagesCache) return messagesCache;
+
+  if (!messagesCachePromise) {
+    messagesCachePromise = readMessages().then(
+      (messages) => {
+        messagesCache = messages;
+        return messages;
+      },
+      (e) => {
+        // A failed read is not an empty index: keep it out of the cache so the
+        // next call can retry.
+        console.error('[LS Search] Error loading messages:', e);
+        return [];
+      },
+    );
+  }
+
+  const messages = await messagesCachePromise;
+  messagesCachePromise = null;
+  return messages;
+}
+
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    // Another context (the offscreen indexer) rewrote the index.
+    if (area === 'local' && changes[LS_KEY_MESSAGES]) invalidateMessagesCache();
+  });
 }
 
 /**
@@ -274,19 +346,30 @@ async function loadMessages() {
  */
 async function saveMessages(messages, meta = {}) {
   try {
-    console.log('[LS Storage] Saving messages:', messages.length);
+    debugLog('[LS Storage] Saving messages:', messages.length);
     await storageSet(LS_KEY_MESSAGES, JSON.stringify(messages));
-
-    if (meta.indexedAt) {
-      await storageSet(LS_KEY_LAST_INDEXED_AT, String(meta.indexedAt));
-    }
-
-    console.log('[LS Storage] Messages saved');
-    return true;
   } catch (e) {
     console.error('[LS Search] Error saving messages:', e);
     return false;
   }
+
+  if (meta.indexedAt) {
+    try {
+      await storageSet(LS_KEY_LAST_INDEXED_AT, String(meta.indexedAt));
+    } catch (e) {
+      // The index itself is already stored. A failed timestamp write must not
+      // report the whole indexing pass as lost, otherwise the message list is
+      // saved without a way to know when it happened.
+      console.error('[LS Search] Error saving the index timestamp:', e);
+    }
+  }
+
+  // What was just written is the freshest state we know of.
+  messagesCache = messages;
+  messagesCachePromise = null;
+
+  debugLog('[LS Storage] Messages saved');
+  return true;
 }
 
 /**
@@ -621,6 +704,8 @@ function normalizeMessage(value) {
 if (typeof window !== 'undefined') {
   window.InlineStorage = {
     loadMessages,
+    getMessages,
+    invalidateMessagesCache,
     saveMessages,
     clearMessages,
     loadLastQuery,
@@ -649,6 +734,8 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     loadMessages,
+    getMessages,
+    invalidateMessagesCache,
     saveMessages,
     clearMessages,
     loadLastQuery,

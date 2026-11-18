@@ -102,6 +102,59 @@ describe('inline-storage', () => {
     localStorage.clear();
   });
 
+  test('keeps the saved index when only the timestamp write fails', async () => {
+    localStorage.clear();
+    const originalSetItem = Storage.prototype.setItem;
+
+    Storage.prototype.setItem = function setItem(key, value) {
+      if (key === 'ls_search_last_indexed_at') {
+        throw new Error('QuotaExceededError');
+      }
+      return originalSetItem.call(this, key, value);
+    };
+
+    try {
+      const saved = await window.InlineStorage.saveMessages(
+        [{ talkId: '1', messageId: '2', text: 'hello', partner: 'p' }],
+        { indexedAt: 1700000000000 },
+      );
+
+      expect(saved).toBe(true);
+      expect(JSON.parse(localStorage.getItem('ls_search_messages'))).toHaveLength(1);
+      expect(localStorage.getItem('ls_search_last_indexed_at')).toBeNull();
+    } finally {
+      Storage.prototype.setItem = originalSetItem;
+      localStorage.clear();
+    }
+  });
+
+  test('reports a failed save when the messages write fails', async () => {
+    localStorage.clear();
+    const originalSetItem = Storage.prototype.setItem;
+
+    Storage.prototype.setItem = function setItem(key, value) {
+      if (key === 'ls_search_messages') {
+        throw new Error('QuotaExceededError');
+      }
+      return originalSetItem.call(this, key, value);
+    };
+
+    try {
+      const saved = await window.InlineStorage.saveMessages(
+        [{ talkId: '1', messageId: '2', text: 'hello', partner: 'p' }],
+        { indexedAt: 1700000000000 },
+      );
+
+      expect(saved).toBe(false);
+      expect(localStorage.getItem('ls_search_messages')).toBeNull();
+      // A failed messages write must not leave a "fresh" timestamp behind.
+      expect(localStorage.getItem('ls_search_last_indexed_at')).toBeNull();
+    } finally {
+      Storage.prototype.setItem = originalSetItem;
+      localStorage.clear();
+    }
+  });
+
   test('counts dialogs by talkId, not by partner', () => {
     const messages = [
       { talkId: '1', partner: 'p', text: 'a' },

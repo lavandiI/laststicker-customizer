@@ -29,7 +29,10 @@ let unreadCount;
 let fetchedUrls;
 
 function createChromeMock() {
+  const messageListeners = [];
+
   return {
+    messageListeners,
     storage: {
       local: {
         get: async (keys) => {
@@ -69,7 +72,9 @@ function createChromeMock() {
         if (callback) callback({ started: true });
       },
       onMessage: {
-        addListener: () => {},
+        addListener: (listener) => {
+          messageListeners.push(listener);
+        },
       },
     },
   };
@@ -223,6 +228,137 @@ describe('offscreen indexer', () => {
 
     expect(result.error).toContain('очищен');
     expect(store.ls_search_messages).toBeUndefined();
+  });
+
+  test('reports how many messages were collected when the index cannot be saved', async () => {
+    const originalSave = window.InlineStorage.saveMessages;
+    window.InlineStorage.saveMessages = async () => false;
+
+    try {
+      const result = await runIndex('manual');
+
+      expect(result.error).toContain('Не удалось сохранить индекс');
+      expect(result.error).toContain('собрано 6 сообщений');
+      expect(result.error).toContain('Освободите место');
+      // Nothing was written, but the previously saved index is untouched.
+      expect(store.ls_search_messages).toBeUndefined();
+      expect(store.ls_search_full_index_at).toBeUndefined();
+    } finally {
+      window.InlineStorage.saveMessages = originalSave;
+    }
+  });
+
+  test('does not report a failure when only the full-index flag was not saved', async () => {
+    const original = window.InlineStorage.saveFullIndexAt;
+    window.InlineStorage.saveFullIndexAt = async () => {
+      throw new Error('QuotaExceededError');
+    };
+
+    try {
+      const result = await runIndex('manual');
+
+      expect(result.error).toBeUndefined();
+      expect(result.fullIndex).toBe(true);
+      expect(JSON.parse(store.ls_search_messages)).toHaveLength(6);
+      expect(store.ls_search_full_index_at).toBeUndefined();
+    } finally {
+      window.InlineStorage.saveFullIndexAt = original;
+    }
+  });
+
+  test('still saves the index when the auto-update report fails', async () => {
+    store.ls_search_auto_enabled = '1';
+    store.ls_search_full_index_at = String(Date.now());
+    store.ls_search_last_indexed_at = String(Date.now());
+
+    const original = window.InlineStorage.saveAutoMeta;
+    window.InlineStorage.saveAutoMeta = async () => {
+      throw new Error('QuotaExceededError');
+    };
+
+    try {
+      const result = await runIndex('auto');
+
+      expect(result.error).toBeUndefined();
+      expect(JSON.parse(store.ls_search_messages)).toHaveLength(6);
+    } finally {
+      window.InlineStorage.saveAutoMeta = original;
+    }
+  });
+
+  test('answers a ping so a restarted service worker can verify the job', () => {
+    const [listener] = global.chrome.messageListeners;
+    let response = null;
+
+    listener(
+      { target: 'offscreen', action: 'pingIndex', jobId: 'job-1' },
+      {},
+      (value) => {
+        response = value;
+      },
+    );
+
+    expect(response).toEqual({ running: false, jobId: null });
+  });
+
+  test('reports the running job id on a ping', async () => {
+    let releaseTalk;
+    let markTalkStarted;
+    const talkGate = new Promise((resolve) => {
+      releaseTalk = resolve;
+    });
+    const talkStarted = new Promise((resolve) => {
+      markTalkStarted = resolve;
+    });
+
+    const baseFetch = global.fetch;
+    global.fetch = jest.fn(async (url) => {
+      const href = String(url);
+      if (
+        href.includes('/users/my_talks/41292/') &&
+        !/\/page\d+\//.test(href)
+      ) {
+        markTalkStarted();
+        await talkGate;
+      }
+      return baseFetch(href);
+    });
+
+    const pending = runIndex('manual');
+    await talkStarted;
+
+    const [listener] = global.chrome.messageListeners;
+    let response = null;
+    listener(
+      { target: 'offscreen', action: 'pingIndex', jobId: 'test-manual' },
+      {},
+      (value) => {
+        response = value;
+      },
+    );
+
+    expect(response).toEqual({ running: true, jobId: 'test-manual' });
+
+    releaseTalk();
+    await pending;
+  });
+
+  test('keeps the service worker alive while indexing', async () => {
+    const stop = jest.fn();
+    const start = jest.fn(() => ({ stop }));
+    global.LSKeepalive = { start };
+
+    try {
+      await runIndex('manual');
+
+      expect(start).toHaveBeenCalledWith({
+        action: 'indexHeartbeat',
+        payload: { jobId: 'test-manual', kind: 'dialog' },
+      });
+      expect(stop).toHaveBeenCalled();
+    } finally {
+      delete global.LSKeepalive;
+    }
   });
 
   test('runs auto refresh when there are no unread messages', async () => {

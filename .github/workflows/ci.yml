@@ -8,16 +8,24 @@ on:
 permissions:
   contents: read
 
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
+      # Actions are pinned by commit SHA, not by a moving major tag, so a
+      # compromised or retagged release cannot change what runs in CI. The
+      # version comment is for humans and for update tooling.
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
@@ -26,7 +34,12 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test -- --runInBand
+        run: npm test -- --runInBand --coverage
 
       - name: Run lint
         run: npm run lint
+
+      # The ZIP is what users install: building it here catches a broken file
+      # list or a missing icon before the release tag exists.
+      - name: Build extension ZIP
+        run: npm run package

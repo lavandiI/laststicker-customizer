@@ -31,7 +31,7 @@ describe('inline-ui filters and result links', () => {
     expect(document.getElementById('ls-autoStatus')).toBeTruthy();
   });
 
-  test('formats the index size and warns near the quota', () => {
+  test('formats the index size and warns about a large index', () => {
     window.InlineUI.renderIndexSize(0);
     expect(document.getElementById('ls-indexSize').textContent).toBe('0 Б');
 
@@ -40,11 +40,17 @@ describe('inline-ui filters and result links', () => {
     expect(document.getElementById('ls-indexSize').classList.contains('ls-stat-warning')).toBe(
       false,
     );
+    expect(document.getElementById('ls-indexSize').title).toBe(
+      'Размер локального индекса',
+    );
 
     window.InlineUI.renderIndexSize(9 * 1024 * 1024);
     expect(document.getElementById('ls-indexSize').classList.contains('ls-stat-warning')).toBe(
       true,
     );
+    // The quota is lifted by unlimitedStorage: the hint is about speed, not a limit.
+    expect(document.getElementById('ls-indexSize').title).toContain('может замедлиться');
+    expect(document.getElementById('ls-indexSize').title).not.toContain('лимит');
   });
 
   test('shows and hides the stale-index banner', () => {
@@ -127,5 +133,64 @@ describe('inline-ui filters and result links', () => {
     expect(link.id).toBe('ls-result-0');
     expect(link.getAttribute('aria-selected')).toBe('false');
     expect(document.getElementById('ls-loadMoreBtn')).toBeTruthy();
+  });
+
+  test('exposes the results as a listbox of options', () => {
+    const container = document.getElementById('ls-results');
+    expect(container.getAttribute('role')).toBe('listbox');
+
+    window.InlineUI.renderResults(
+      [{ partner: 'Анна', text: 'hello', timestamp: 1 }],
+      'hello',
+      1,
+      200,
+      false,
+    );
+
+    const item = document.querySelector('#ls-results .ls-result-item');
+    expect(item.getAttribute('role')).toBe('option');
+    // aria-selected is only meaningful on an option, which it now is.
+    expect(item.getAttribute('aria-selected')).toBe('false');
+  });
+
+  test('highlights a query made of html characters', () => {
+    window.InlineUI.renderResults(
+      [{ partner: 'Анна', text: 'цена < 100 & скидка', timestamp: 1 }],
+      '< 100 &',
+      1,
+      200,
+      false,
+    );
+
+    const highlights = document.querySelectorAll('#ls-results .ls-highlight');
+    expect(highlights).toHaveLength(1);
+    // The markup is escaped, the visible text is the original query.
+    expect(highlights[0].textContent).toBe('< 100 &');
+  });
+
+  test('keeps the combobox expanded state in sync with the listbox', () => {
+    const input = document.getElementById('ls-searchInput');
+    const container = document.getElementById('ls-results');
+    expect(input.getAttribute('role')).toBe('combobox');
+    expect(input.getAttribute('aria-autocomplete')).toBe('list');
+
+    window.InlineUI.renderEmptyState('no-query');
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+    // A listbox may only contain options, so the empty state drops the role.
+    expect(container.getAttribute('role')).toBeNull();
+
+    window.InlineUI.renderResults(
+      [{ partner: 'Анна', text: 'hello', timestamp: 1 }],
+      'hello',
+      1,
+      200,
+      false,
+    );
+    expect(input.getAttribute('aria-expanded')).toBe('true');
+    expect(container.getAttribute('role')).toBe('listbox');
+
+    window.InlineUI.renderResults([], 'нет совпадений', 0, 200, false);
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+    expect(container.getAttribute('role')).toBeNull();
   });
 });

@@ -219,7 +219,9 @@
   function updateTheme(doc, partial, statusText) {
     return enqueue(async function () {
       try {
-        const next = await store.saveTheme(partial);
+        // Pass the theme this popup already shows, so a failed storage read
+        // cannot replace the user's settings with the defaults.
+        const next = await store.saveTheme(partial, current);
         render(doc, next, masterEnabled, scrollEnabled);
         showSaved(doc, statusText);
       } catch {
@@ -255,10 +257,15 @@
           chrome.runtime.sendMessage
         ) {
           try {
-            chrome.runtime.sendMessage({
+            const pending = chrome.runtime.sendMessage({
               action: 'setExtensionEnabled',
               enabled,
             });
+            // MV3 returns a promise; a closed port (the service worker is
+            // restarting) must not become an unhandled rejection.
+            if (pending && typeof pending.catch === 'function') {
+              pending.catch(() => {});
+            }
           } catch {
             // The storage write above is enough for the next page load.
           }

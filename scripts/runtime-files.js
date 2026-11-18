@@ -4,6 +4,9 @@
 module.exports = [
   'manifest.json',
   'background.js',
+  'job-state.js',
+  'auto-update.js',
+  'keepalive.js',
   'fetch-retry.js',
   'parser.js',
   'forum-parser.js',

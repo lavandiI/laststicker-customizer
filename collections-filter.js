@@ -51,18 +51,51 @@
     return rows;
   }
 
-  function readTotal(doc) {
-    const counter = doc && doc.getElementById('checklist_count');
+  // The site owns #checklist_count. Remember its text once, so the filter can
+  // restore the original string instead of leaving "Показано … из …" behind
+  // forever after the extension is disabled.
+  const originalCounterText = new WeakMap();
+
+  function captureCounterText(counter) {
     if (!counter) return null;
-    const match = /из\s+(\d+)/.exec(counter.textContent || '');
-    return match ? parseInt(match[1], 10) : null;
+    if (!originalCounterText.has(counter)) {
+      originalCounterText.set(counter, counter.textContent || '');
+    }
+    return originalCounterText.get(counter);
+  }
+
+  /**
+   * Total number of stickers from the site's own counter text.
+   * Understands "Показано 1–50 из 623" and a bare "623"; anything else is
+   * unknown, and the filter then shows the visible count without a total
+   * instead of inventing one.
+   *
+   * @param {string} text
+   * @returns {number|null}
+   */
+  function parseTotal(text) {
+    const value = String(text || '');
+    const match = /из\s+(\d+)/.exec(value);
+    if (match) return parseInt(match[1], 10);
+
+    const plain = value.trim().match(/^(\d+)$/);
+    return plain ? parseInt(plain[1], 10) : null;
   }
 
   function updateCount(doc, visible, total) {
     const counter = doc && doc.getElementById('checklist_count');
-    if (counter) {
-      counter.textContent = `Показано ${visible} из ${total}`;
-    }
+    if (!counter) return;
+
+    counter.textContent =
+      total == null ? `Показано: ${visible}` : `Показано ${visible} из ${total}`;
+  }
+
+  function restoreCount(doc) {
+    const counter = doc && doc.getElementById('checklist_count');
+    if (!counter || !originalCounterText.has(counter)) return;
+
+    counter.textContent = originalCounterText.get(counter);
+    originalCounterText.delete(counter);
   }
 
   function applyHuntFilter(table, mode, doc) {
@@ -81,13 +114,25 @@
       row.classList.toggle('ls-hunt-hidden', hide);
     });
 
-    const total = readTotal(documentRef) || rows.length;
+    const counter = documentRef.getElementById('checklist_count');
+    const total = parseTotal(captureCounterText(counter));
     const visible = countVisibleRows(rows);
-    updateCount(documentRef, visible, total);
-    return { visible, total };
+
+    if (counter) updateCount(documentRef, visible, total);
+
+    return { visible, total: total ?? rows.length };
   }
 
-  function initCollectionsFilter(doc) {
+  /**
+   * Insert the "Все / Я ищу" select into the tablesorter filter row.
+   *
+   * @param {Document} doc
+   * @param {{mode?: 'all'|'me', onModeChange?: (mode: string) => void}} [options]
+   *   `mode` is used when the control is created again after the site
+   *   re-rendered the header; it does not filter anything by itself.
+   * @returns {boolean} true when the control exists after the call.
+   */
+  function initCollectionsFilter(doc, options = {}) {
     const documentRef = doc || (typeof document !== 'undefined' ? document : null);
     if (!documentRef) return false;
 
@@ -115,8 +160,12 @@
     select.setAttribute('aria-label', 'Фильтр по столбцу Ищут');
     select.innerHTML =
       '<option value="all">Все</option><option value="me">Я ищу</option>';
+    select.value = options.mode === 'me' ? 'me' : 'all';
 
     select.addEventListener('change', () => {
+      if (typeof options.onModeChange === 'function') {
+        options.onModeChange(select.value);
+      }
       applyHuntFilter(table, select.value, documentRef);
     });
 
@@ -147,29 +196,88 @@
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     rows.forEach((row) => row.classList.remove('ls-hunt-hidden'));
 
-    const total = readTotal(documentRef) || rows.length;
-    updateCount(documentRef, rows.length, total);
+    // Restore the site's own counter text. When the filter was never applied
+    // the counter is left untouched, so a disabled extension cannot rewrite it.
+    restoreCount(documentRef);
     return true;
   }
 
+  // tablesorter rebuilds the header and its filter row on sorting, resetting
+  // filters and on its own re-render, so the select has to be inserted again.
+  const SCAN_DELAY_MS = 50;
+
+  function clearHuntMarks(table) {
+    if (!table) return;
+    Array.from(table.querySelectorAll('tbody tr.ls-hunt-hidden')).forEach((row) => {
+      row.classList.remove('ls-hunt-hidden');
+    });
+  }
+
+  /**
+   * Keep the filter control alive for the lifetime of the page.
+   *
+   * @param {Document} doc
+   * @returns {{stop: () => void}|null}
+   */
   function start(doc) {
     const documentRef = doc || (typeof document !== 'undefined' ? document : null);
     if (!documentRef) return null;
 
     let stopped = false;
-    let attempts = 0;
-    const tick = () => {
-      if (stopped) return;
-      if (initCollectionsFilter(documentRef) || attempts >= 100) return;
-      attempts += 1;
-      setTimeout(tick, 50);
-    };
+    let observer = null;
+    let scanTimer = null;
+    let control = null;
+    let mode = 'all';
 
-    tick();
+    function rememberMode(value) {
+      mode = value === 'me' ? 'me' : 'all';
+    }
+
+    function sync() {
+      if (stopped) return;
+      if (control && control.isConnected) return;
+
+      const created = initCollectionsFilter(documentRef, {
+        mode,
+        onModeChange: rememberMode,
+      });
+      if (!created) return;
+
+      control = documentRef.querySelector('.ls-customizer-filter');
+      const table = documentRef.getElementById('checklist');
+      if (!table) return;
+
+      // Restore the remembered mode on a freshly rendered control.
+      if (mode === 'me') {
+        applyHuntFilter(table, mode, documentRef);
+      } else {
+        clearHuntMarks(table);
+      }
+    }
+
+    function scheduleSync() {
+      if (stopped || scanTimer) return;
+      scanTimer = setTimeout(() => {
+        scanTimer = null;
+        sync();
+      }, SCAN_DELAY_MS);
+    }
+
+    sync();
+
+    if (typeof MutationObserver !== 'undefined' && documentRef.body) {
+      observer = new MutationObserver(scheduleSync);
+      observer.observe(documentRef.body, { childList: true, subtree: true });
+    }
 
     return {
       stop() {
         stopped = true;
+        if (scanTimer) clearTimeout(scanTimer);
+        scanTimer = null;
+        if (observer) observer.disconnect();
+        observer = null;
+        control = null;
       },
     };
   }

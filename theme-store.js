@@ -16,28 +16,57 @@
     return chrome.storage.local;
   }
 
-  async function loadTheme() {
+  /**
+   * Read the stored theme and let storage errors propagate.
+   *
+   * `saveTheme` uses this reader: a failed read must not turn a partial update
+   * into "reset everything to the defaults", so the error has to reach the
+   * caller instead of being replaced with `normalizeTheme(null)`.
+   *
+   * @returns {Promise<object>}
+   */
+  async function readStoredTheme() {
     const storage = getChromeStorage();
 
     if (storage) {
-      try {
-        const data = await storage.get(core.THEME_KEY);
-        return core.normalizeTheme(data && data[core.THEME_KEY]);
-      } catch {
-        return core.normalizeTheme(null);
-      }
+      const data = await storage.get(core.THEME_KEY);
+      return core.normalizeTheme(data && data[core.THEME_KEY]);
     }
 
+    if (typeof localStorage === 'undefined') {
+      return core.normalizeTheme(null);
+    }
+
+    const raw = localStorage.getItem(core.THEME_KEY);
+    if (!raw) return core.normalizeTheme(null);
+
     try {
-      const raw = localStorage.getItem(core.THEME_KEY);
-      return core.normalizeTheme(raw ? JSON.parse(raw) : null);
+      return core.normalizeTheme(JSON.parse(raw));
+    } catch {
+      // A corrupt value is not a storage failure: there is nothing to preserve.
+      return core.normalizeTheme(null);
+    }
+  }
+
+  async function loadTheme() {
+    try {
+      return await readStoredTheme();
     } catch {
       return core.normalizeTheme(null);
     }
   }
 
-  async function saveTheme(partial) {
-    const current = await loadTheme();
+  /**
+   * Save a partial theme update.
+   *
+   * @param {object} partial
+   * @param {object} [base] Known current theme (the popup keeps one in memory).
+   *   When it is passed, storage is not read again and a read failure cannot
+   *   silently replace the user's settings with the defaults.
+   * @returns {Promise<object>} The saved theme.
+   */
+  async function saveTheme(partial, base) {
+    const current = base ? core.normalizeTheme(base) : await readStoredTheme();
     const next = core.normalizeTheme({ ...current, ...(partial || {}) });
     const storage = getChromeStorage();
 

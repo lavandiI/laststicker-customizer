@@ -19,6 +19,23 @@
   let cancelRequested = false;
   let currentJob = null;
   let lastProgressAt = 0;
+  let keepalive = null;
+
+  function startKeepalive(job) {
+    if (typeof LSKeepalive === 'undefined') return;
+
+    keepalive = LSKeepalive.start({
+      action: 'indexHeartbeat',
+      payload: { jobId: job.jobId, kind: 'dialog' },
+    });
+  }
+
+  function stopKeepalive() {
+    if (keepalive) {
+      keepalive.stop();
+      keepalive = null;
+    }
+  }
 
   // DOMParser is inert, but Chrome still reports CSP violations for inline
   // event handlers present in the parsed HTML. Remove them before parsing.
@@ -437,7 +454,11 @@
 
     const saved = await InlineStorage.saveMessages(merged, { indexedAt: now });
     if (!saved) {
-      throw new Error('Не удалось сохранить индекс: проверьте квоту хранилища');
+      throw new Error(
+        `Не удалось сохранить индекс: собрано ${allMessages.length} сообщений, ` +
+          'но запись в хранилище браузера не удалась. Уже сохранённый индекс не ' +
+          'изменён. Освободите место на диске и повторите индексацию.',
+      );
     }
 
     const stats = InlineStorage.getStats(merged);
@@ -447,18 +468,30 @@
       merged.length > 0;
 
     if (fullIndex) {
-      await InlineStorage.saveFullIndexAt(now);
+      try {
+        await InlineStorage.saveFullIndexAt(now);
+      } catch (e) {
+        // The messages are already stored. The flag is metadata: background
+        // rebuilds it from lastIndexedAt on the next startup, so a failed write
+        // must not turn a successful index into a reported failure.
+        console.error('[LS Search] Error saving the full index flag:', e);
+      }
     }
 
     if (job.source === 'auto') {
-      const meta = await InlineStorage.loadAutoMeta();
-      await InlineStorage.saveAutoMeta({
-        ...meta,
-        lastRun: now,
-        lastCheck: now,
-        lastError: errors[0] || '',
-        lastResult: `Добавлено ${addedCount}, пропущено ${skippedTalks}`,
-      });
+      try {
+        const meta = await InlineStorage.loadAutoMeta();
+        await InlineStorage.saveAutoMeta({
+          ...meta,
+          lastRun: now,
+          lastCheck: now,
+          lastError: errors[0] || '',
+          lastResult: `Добавлено ${addedCount}, пропущено ${skippedTalks}`,
+        });
+      } catch (e) {
+        // Same as above: the index is saved, the scheduler report is not.
+        console.error('[LS Search] Error saving the auto-update report:', e);
+      }
     }
 
     return {
@@ -490,6 +523,7 @@
     cancelRequested = false;
     currentJob = job;
     lastProgressAt = 0;
+    startKeepalive(job);
 
     try {
       if (job.source === 'auto') {
@@ -535,6 +569,7 @@
     } finally {
       running = false;
       currentJob = null;
+      stopKeepalive();
       setBadge('');
     }
   }
@@ -560,6 +595,16 @@
       if (message.action === 'cancelIndex') {
         cancelRequested = true;
         sendResponse({ cancelled: running });
+        return false;
+      }
+
+      // The service worker may have been restarted and needs to know whether
+      // the job it remembers is still running here.
+      if (message.action === 'pingIndex') {
+        sendResponse({
+          running,
+          jobId: currentJob ? currentJob.jobId : null,
+        });
         return false;
       }
 

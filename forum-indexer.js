@@ -11,6 +11,23 @@
   let cancelRequested = false;
   let currentJob = null;
   let lastProgressAt = 0;
+  let keepalive = null;
+
+  function startKeepalive(job) {
+    if (typeof LSKeepalive === 'undefined') return;
+
+    keepalive = LSKeepalive.start({
+      action: 'indexHeartbeat',
+      payload: { jobId: job.jobId, kind: 'forum' },
+    });
+  }
+
+  function stopKeepalive() {
+    if (keepalive) {
+      keepalive.stop();
+      keepalive = null;
+    }
+  }
 
   function sanitizeHtml(html) {
     return String(html)
@@ -399,6 +416,7 @@
     cancelRequested = false;
     currentJob = job;
     lastProgressAt = 0;
+    startKeepalive(job);
 
     try {
       const result = await indexTopic(job);
@@ -415,6 +433,7 @@
     } finally {
       running = false;
       currentJob = null;
+      stopKeepalive();
       setBadge('');
     }
   }
@@ -443,6 +462,15 @@
       if (message.action === 'cancelForumIndex') {
         cancelRequested = true;
         sendResponse({ cancelled: running });
+        return false;
+      }
+
+      // Same as pingIndex: lets a restarted service worker verify the job.
+      if (message.action === 'pingForumIndex') {
+        sendResponse({
+          running,
+          jobId: currentJob ? currentJob.jobId : null,
+        });
         return false;
       }
 

@@ -4,7 +4,14 @@
 
 (function() {
   'use strict';
-  
+
+  // Debug output stays silent in production builds: flip the flag while debugging.
+  const DEBUG_LOG = false;
+
+  function debugLog(...args) {
+    if (DEBUG_LOG) console.log(...args);
+  }
+
   // Current talk page state
   let currentTalkId = null;
   let currentPartnerName = '';
@@ -17,11 +24,35 @@
   let forumProgressListenerAttached = false;
   let forumPanelInitialized = false;
   let forumIndexing = false;
-  let lastForumSearch = { query: '', results: [], total: 0, limit: 200 };
+  let forumLoadingMore = false;
+  let lastForumSearch = {
+    query: '',
+    results: [],
+    total: 0,
+    limit: 0,
+    truncated: false,
+    hasMore: false,
+  };
   const resolvedMessageTargets = new Map();
+
+  // How many forum results one "показать ещё" page contains.
+  const FORUM_PAGE_SIZE = 200;
+  // Mirrors the key background.js writes when an indexing job finishes.
+  const JOB_RESULT_KEY = 'ls_search_job_result';
+  let jobResultListenerAttached = false;
+  let lastAppliedIndexJobId = null;
+  let lastAppliedForumJobId = null;
 
   const DAY_MS = 24 * 60 * 60 * 1000;
   const STALE_INDEX_MS = 7 * DAY_MS;
+
+  // Locating a message that has no messageId is a navigation aid, not
+  // indexing: check pages in batches, stop at the first empty page and give up
+  // after a short budget instead of crawling a 200-page dialog one by one.
+  const RESOLVE_BATCH_SIZE = 10;
+  const RESOLVE_MAX_PAGES = 100;
+  const RESOLVE_BUDGET_MS = 6000;
+  let lastResolveRequest = 0;
   
   // Check if this is a single talk page
   function isSingleTalkPath(path) {
@@ -276,7 +307,7 @@
   }
 
   async function refreshPanelFromStorage() {
-    const messages = await window.InlineStorage.loadMessages();
+    const messages = await window.InlineStorage.getMessages();
     const stats = window.InlineStorage.getStats(messages);
     window.InlineUI.renderStats(stats);
 
@@ -301,26 +332,26 @@
   
   // Wait for DOM and dependencies
   function init() {
-    console.log('[LS Search] inline-panel init called, readyState:', document.readyState);
+    debugLog('[LS Search] inline-panel init called, readyState:', document.readyState);
     
     const path = window.location.pathname;
     const pageType = detectPanelPage(path, document);
 
     if (pageType === 'forum-topic') {
-      console.log('[LS Search] Forum topic page detected, initializing forum panel');
+      debugLog('[LS Search] Forum topic page detected, initializing forum panel');
       currentForumPostId = getForumTopicIdFromPath(path);
       initForumPage();
       return;
     }
 
     if (pageType === 'forum') {
-      console.log('[LS Search] Forum page detected, initializing forum panel');
+      debugLog('[LS Search] Forum page detected, initializing forum panel');
       initForumPage();
       return;
     }
 
     if (pageType === 'talk') {
-      console.log('[LS Search] Single talk page detected, initializing talk panel');
+      debugLog('[LS Search] Single talk page detected, initializing talk panel');
       currentTalkId = getTalkIdFromPath(path);
       currentPartnerName = getPartnerNameFromPage();
       initTalkPage();
@@ -328,14 +359,14 @@
     }
 
     if (pageType !== 'talk-list') {
-      console.log('[LS Search] Unsupported page, skipping');
+      debugLog('[LS Search] Unsupported page, skipping');
       // Mark as ready even though we're not initializing the panel.
       // This prevents "InlinePanel still not ready" errors on non-supported pages.
       window.InlinePanelReady = true;
       return;
     }
 
-    console.log('[LS Search] Initializing inline panel...');
+    debugLog('[LS Search] Initializing inline panel...');
     
     // Wait for InlineStorage and InlineUI to be available
     let attempts = 0;
@@ -344,7 +375,7 @@
     function checkDependencies() {
       attempts++;
       
-      console.log('[LS Search] checkDependencies attempt', attempts, '/', maxAttempts, '- InlineStorage:', !!window.InlineStorage, 'InlineUI:', !!window.InlineUI);
+      debugLog('[LS Search] checkDependencies attempt', attempts, '/', maxAttempts, '- InlineStorage:', !!window.InlineStorage, 'InlineUI:', !!window.InlineUI);
       
       if (window.InlineStorage && window.InlineUI) {
         injectStyles();
@@ -352,19 +383,19 @@
         const elements = window.InlineUI.createSearchPanel();
         
         if (!elements) {
-          console.log('[LS Search] Could not create panel');
+          debugLog('[LS Search] Could not create panel');
           window.InlinePanelReady = true;
           return;
         }
         
-        console.log('Init', 'Panel created successfully');
+        debugLog('Init', 'Panel created successfully');
         
         initPanel(elements);
         window.InlinePanelReady = true;
       } else if (attempts < maxAttempts) {
         setTimeout(checkDependencies, 100);
       } else {
-        console.log('[LS Search] Dependencies not loaded, marking as ready anyway');
+        debugLog('[LS Search] Dependencies not loaded, marking as ready anyway');
         window.InlinePanelReady = true;
       }
     }
@@ -374,7 +405,7 @@
   
   // Initialize panel for single talk page
   async function initTalkPage() {
-    console.log('[LS Search] initTalkPage called');
+    debugLog('[LS Search] initTalkPage called');
     
     let attempts = 0;
     const maxAttempts = 20;
@@ -388,19 +419,19 @@
         const elements = window.InlineUI.createTalkSearchPanel();
         
         if (!elements) {
-          console.log('[LS Search] Could not create talk panel');
+          debugLog('[LS Search] Could not create talk panel');
           window.InlinePanelReady = true;
           return;
         }
         
-        console.log('Init', 'Talk panel created, talkId:', currentTalkId);
+        debugLog('Init', 'Talk panel created, talkId:', currentTalkId);
         
         initTalkPanel(elements);
         window.InlinePanelReady = true;
       } else if (attempts < maxAttempts) {
         setTimeout(checkDependencies, 100);
       } else {
-        console.log('[LS Search] Dependencies not loaded for talk page, marking as ready anyway');
+        debugLog('[LS Search] Dependencies not loaded for talk page, marking as ready anyway');
         window.InlinePanelReady = true;
       }
     }
@@ -412,21 +443,21 @@
   async function initTalkPanel(elements) {
     const { searchInput, results, talkId, partnerName } = elements;
     
-    let messages = await window.InlineStorage.loadMessages();
+    let messages = await window.InlineStorage.getMessages();
 
     // Filter messages by current talkId
     let messageCount = messages.filter((msg) => msg.talkId == talkId).length;
     
     // Use cached messages if available, otherwise fetch from network
     if (messageCount === 0) {
-      console.log('[LS Search] Starting fetch for talkId:', talkId);
+      debugLog('[LS Search] Starting fetch for talkId:', talkId);
       let additionalMessages = [];
       try {
         additionalMessages = await fetchAllTalkPages(talkId);
       } catch (e) {
-        console.log('[LS Search] Error fetching additional pages:', e);
+        debugLog('[LS Search] Error fetching additional pages:', e);
       }
-      console.log('[LS Search] Total additional messages fetched:', additionalMessages.length);
+      debugLog('[LS Search] Total additional messages fetched:', additionalMessages.length);
       
       if (additionalMessages.length > 0) {
         const mergedMessages = window.InlineStorage.mergeMessages(messages, additionalMessages);
@@ -435,13 +466,13 @@
         // Save even when only legacy records were upgraded with messageId.
         await window.InlineStorage.saveMessages(mergedMessages, {});
         messageCount = mergedMessages.filter((msg) => msg.talkId == talkId).length;
-        console.log('[LS Search] Added', addedCount, 'new messages, total:', messageCount);
+        debugLog('[LS Search] Added', addedCount, 'new messages, total:', messageCount);
 
         // Update stats display with new count
         window.InlineUI.renderTalkStats(messageCount, partnerName);
       }
     } else {
-      console.log('[LS Search] Using cached messages for talkId:', talkId, 'count:', messageCount);
+      debugLog('[LS Search] Using cached messages for talkId:', talkId, 'count:', messageCount);
     }
     
     // Update stats display
@@ -547,7 +578,7 @@
     if (currentForumPostId && !stats.topic) {
       window.InlineUI.renderForumEmptyState('no-topic-index');
     } else if (query) {
-      await performForumSearch(query, { resetLimit: true });
+      await performForumSearch(query);
     } else if (Number(stats.messagesCount) > 0) {
       window.InlineUI.renderForumEmptyState('no-query');
     } else {
@@ -571,7 +602,7 @@
         });
 
         if (!elements) {
-          console.log('[LS Search] Could not create forum panel');
+          debugLog('[LS Search] Could not create forum panel');
           window.InlinePanelReady = true;
           return;
         }
@@ -581,7 +612,7 @@
       } else if (attempts < maxAttempts) {
         setTimeout(checkDependencies, 100);
       } else {
-        console.log('[LS Search] Dependencies not loaded for forum page');
+        debugLog('[LS Search] Dependencies not loaded for forum page');
         window.InlinePanelReady = true;
       }
     }
@@ -597,6 +628,7 @@
     const { indexBtn, cancelBtn, clearBtn, searchInput, results } = elements;
 
     attachForumProgressListener();
+    attachJobResultListener();
 
     if (!window._lsForumHashListener) {
       window._lsForumHashListener = true;
@@ -626,7 +658,7 @@
         searchTimeout = setTimeout(() => {
           const query = searchInput.value.trim();
           if (query) {
-            performForumSearch(query, { resetLimit: true });
+            performForumSearch(query);
           } else {
             window.InlineUI.renderForumEmptyState('no-query');
           }
@@ -653,24 +685,37 @@
       return;
     }
 
-    if (options.resetLimit) lastForumSearch.limit = 200;
+    // "Показать ещё" asks for the next page instead of re-reading the whole
+    // result set: every page keeps the message size constant.
+    const append = options.append === true && lastForumSearch.query === query;
+    if (!append) {
+      lastForumSearch = { query, results: [], total: 0, limit: 0 };
+    }
+
     const postId = currentForumPostId || '';
-    const limit = Math.max(200, lastForumSearch.limit || 200);
+    const offset = append ? lastForumSearch.results.length : 0;
 
     try {
       const result = await forumRpc({
         action: 'forumSearch',
         query,
         postId: postId || '',
-        limit,
-        offset: 0,
+        limit: FORUM_PAGE_SIZE,
+        offset,
       });
+
+      const incoming = Array.isArray(result.results) ? result.results : [];
+      const results = append
+        ? mergeForumResults(lastForumSearch.results, incoming)
+        : incoming;
 
       lastForumSearch = {
         query,
-        results: result.results || [],
+        results,
         total: Number(result.total) || 0,
-        limit,
+        limit: results.length,
+        truncated: result.truncated === true,
+        hasMore: result.hasMore === true,
       };
       renderLastForumSearch();
     } catch (e) {
@@ -679,6 +724,31 @@
         'error',
       );
     }
+  }
+
+  // Pages are sliced by offset, but the index can change between two queries;
+  // keep the list free of duplicates in that case.
+  function mergeForumResults(existing, incoming) {
+    const seen = new Set();
+    const merged = [];
+
+    existing.forEach((item) => {
+      if (item && item.key) {
+        if (seen.has(item.key)) return;
+        seen.add(item.key);
+      }
+      merged.push(item);
+    });
+
+    incoming.forEach((item) => {
+      if (item && item.key) {
+        if (seen.has(item.key)) return;
+        seen.add(item.key);
+      }
+      merged.push(item);
+    });
+
+    return merged;
   }
 
   function renderLastForumSearch() {
@@ -690,7 +760,8 @@
       lastForumSearch.limit,
       {
         groupByTopic,
-        canLoadMore: lastForumSearch.total > lastForumSearch.limit,
+        canLoadMore: lastForumSearch.hasMore,
+        truncated: lastForumSearch.truncated,
       },
     );
     if (forumKeyboard) forumKeyboard.reset();
@@ -698,11 +769,13 @@
 
   function onForumResultsClick(event) {
     const loadMore = event.target.closest('#ls-forumLoadMoreBtn');
-    if (!loadMore) return;
+    if (!loadMore || forumLoadingMore) return;
 
     event.preventDefault();
-    lastForumSearch.limit += 200;
-    performForumSearch(lastForumSearch.query, { resetLimit: false });
+    forumLoadingMore = true;
+    performForumSearch(lastForumSearch.query, { append: true }).finally(() => {
+      forumLoadingMore = false;
+    });
   }
 
   async function startForumIndex(mode) {
@@ -792,7 +865,14 @@
           ? { action: 'forumDeleteTopic', postId: currentForumPostId }
           : { action: 'forumClear' },
       );
-      lastForumSearch = { query: '', results: [], total: 0, limit: 200 };
+      lastForumSearch = {
+        query: '',
+        results: [],
+        total: 0,
+        limit: 0,
+        truncated: false,
+        hasMore: false,
+      };
       setForumIndexingState(false);
       const input = document.getElementById('ls-forumSearchInput');
       if (input) input.value = '';
@@ -836,31 +916,44 @@
       }
 
       if (message.action === 'forumIndexFinished') {
-        setForumIndexingState(false);
-        const result = message.result || {};
-
-        const errors = result.errors || [];
-        if (result.error) {
-          errors.unshift(result.error);
-          window.InlineUI.showForumStatus(
-            `Ошибка индексации: ${result.error}`,
-            'error',
-          );
-        } else if (result.cancelled) {
-          window.InlineUI.showForumStatus('Индексация отменена', 'success');
-        } else if (result.noChanges) {
-          window.InlineUI.showForumStatus('Новых сообщений нет', 'success');
-        } else {
-          window.InlineUI.showForumStatus(
-            `Готово: ${result.messageCount || 0} сообщений`,
-            'success',
-          );
-        }
-
-        window.InlineUI.renderForumErrors(errors);
-        refreshForumPanel();
+        applyForumIndexResult(message.result);
       }
     });
+  }
+
+  /**
+   * Render the outcome of a forum indexing job. Called both from the message
+   * listener and from the storage listener, so the second call is ignored.
+   *
+   * @param {object} result
+   */
+  function applyForumIndexResult(result) {
+    if (!result) return;
+    if (result.jobId && result.jobId === lastAppliedForumJobId) return;
+    if (result.jobId) lastAppliedForumJobId = result.jobId;
+
+    setForumIndexingState(false);
+
+    const errors = Array.isArray(result.errors) ? result.errors.slice() : [];
+    if (result.error) {
+      errors.unshift(result.error);
+      window.InlineUI.showForumStatus(
+        `Ошибка индексации: ${result.error}`,
+        'error',
+      );
+    } else if (result.cancelled) {
+      window.InlineUI.showForumStatus('Индексация отменена', 'success');
+    } else if (result.noChanges) {
+      window.InlineUI.showForumStatus('Новых сообщений нет', 'success');
+    } else {
+      window.InlineUI.showForumStatus(
+        `Готово: ${result.messageCount || 0} сообщений`,
+        'success',
+      );
+    }
+
+    window.InlineUI.renderForumErrors(errors);
+    refreshForumPanel();
   }
 
   function highlightForumTarget() {
@@ -985,7 +1078,7 @@
   // one; use its highest pageN as a hint, then probe one page past it and keep
   // going only if that page is not empty.
   async function fetchAllTalkPages(talkId) {
-    console.log('[LS Search] fetchAllTalkPages called with talkId:', talkId);
+    debugLog('[LS Search] fetchAllTalkPages called with talkId:', talkId);
     const origin = window.location.origin;
     const talkBasePath = getTalkBasePath(window.location.pathname);
     const baseUrl = `${origin}${talkBasePath}`;
@@ -1052,7 +1145,7 @@
       if (reachedEnd) break;
       // Avoid looping forever if the whole batch failed (network/site issue).
       if (loadedPages === 0) {
-        console.log('[LS Search] No dialog pages loaded in batch, stopping');
+        debugLog('[LS Search] No dialog pages loaded in batch, stopping');
         break;
       }
 
@@ -1069,7 +1162,7 @@
   function extractMessagesFromTalkDocument(doc, defaultPartner, talkId, pageUrl) {
     const result = [];
     const messageElements = doc.querySelectorAll('.user_message');
-    console.log('[LS Search] Found', messageElements.length, 'message elements in', pageUrl);
+    debugLog('[LS Search] Found', messageElements.length, 'message elements in', pageUrl);
     
     messageElements.forEach((el) => {
       const msg = parseUserMessageFromElement(el, defaultPartner);
@@ -1253,7 +1346,7 @@
   
   // Search within current talk
   function performTalkSearch(query, talkId) {
-    window.InlineStorage.loadMessages().then((messages) => {
+    window.InlineStorage.getMessages().then((messages) => {
       // First filter by talkId
       const talkMessages = messages.filter(msg => msg.talkId == talkId);
       
@@ -1290,34 +1383,34 @@
   function injectStyles() {
     const styleId = 'ls-inline-styles';
     if (document.getElementById(styleId)) {
-      console.log('Styles', 'Styles already injected');
+      debugLog('Styles', 'Styles already injected');
       return;
     }
     
-    console.log('Styles', 'Injecting styles');
+    debugLog('Styles', 'Injecting styles');
     
     const link = document.createElement('link');
     link.id = styleId;
     link.rel = 'stylesheet';
     link.href = chrome.runtime ? chrome.runtime.getURL('inline-styles.css') : 'inline-styles.css';
     
-    console.log('Styles', 'CSS href', { href: link.href, hasChromeRuntime: !!chrome.runtime });
+    debugLog('Styles', 'CSS href', { href: link.href, hasChromeRuntime: !!chrome.runtime });
     
     // For userscript without extension, try to load from same directory
     if (!chrome.runtime) {
       // Try to find the stylesheet in current directory
       const scripts = document.querySelectorAll('script[src*="inline-panel"]');
-      console.log('Styles', 'Looking for inline-panel scripts', { found: scripts.length });
+      debugLog('Styles', 'Looking for inline-panel scripts', { found: scripts.length });
       
       if (scripts.length > 0) {
         const baseUrl = scripts[0].src.replace(/[^/]*$/, '');
         link.href = baseUrl + 'inline-styles.css';
-        console.log('Styles', 'Using baseUrl for styles', { baseUrl, fullUrl: link.href });
+        debugLog('Styles', 'Using baseUrl for styles', { baseUrl, fullUrl: link.href });
       }
     }
     
     document.head.appendChild(link);
-    console.log('Styles', 'Styles link appended to head');
+    debugLog('Styles', 'Styles link appended to head');
   }
   
   function attachIndexProgressListener() {
@@ -1360,9 +1453,10 @@
     const { indexBtn, cancelBtn, clearBtn, searchInput, results } = elements;
 
     attachIndexProgressListener();
+    attachJobResultListener();
 
     // Load stored messages
-    const messages = await window.InlineStorage.loadMessages();
+    const messages = await window.InlineStorage.getMessages();
     const stats = window.InlineStorage.getStats(messages);
     window.InlineUI.renderStats(stats);
     
@@ -1401,7 +1495,7 @@
       // Create new listener
       indexBtn._clickListener = onIndexClick;
       indexBtn.addEventListener('click', onIndexClick);
-      console.log('Init', 'Attached click handler to indexBtn (overwritten)');
+      debugLog('Init', 'Attached click handler to indexBtn (overwritten)');
     }
     
     if (clearBtn) {
@@ -1412,7 +1506,7 @@
       // Create new listener
       clearBtn._clickListener = onClearClick;
       clearBtn.addEventListener('click', onClearClick);
-      console.log('Init', 'Attached click handler to clearBtn (overwritten)');
+      debugLog('Init', 'Attached click handler to clearBtn (overwritten)');
     }
 
     if (cancelBtn) {
@@ -1548,67 +1642,10 @@
     if (cancelBtn) {
       cancelBtn.style.display = 'inline-block';
     }
-    
-    // Check if we're running as extension (has chrome.runtime) or as userscript
-    if (chrome.runtime && chrome.runtime.id) {
-      // Use background script for full indexing (same as popup)
-      await indexViaBackgroundScript();
-      
-      // Reset button and exit
-      if (indexBtn) {
-        indexBtn.disabled = false;
-        indexBtn.textContent = 'Индексировать';
-      }
-      if (cancelBtn) {
-        cancelBtn.style.display = 'none';
-      }
-      return;
-    }
-    
-    console.log('Index', 'No chrome.runtime - using fallback extraction');
-    
-    try {
-      // Use the content script extraction logic
-      // Since we're in the page context, we can call the functions directly
-      let messages = [];
-      
-      if (typeof window.extractAllMessages === 'function') {
-        messages = await window.extractAllMessages();
-      } else {
-        // Fallback: try to extract from current page
-        messages = await extractFromCurrentPage();
-      }
-      
-      // Merge with existing messages
-      const existingMessages = await window.InlineStorage.loadMessages();
-      const allMessages = window.InlineStorage.mergeMessages(existingMessages, messages);
-      const addedCount = allMessages.length - existingMessages.length;
-      const now = Date.now();
 
-      await window.InlineStorage.saveMessages(allMessages, { indexedAt: now });
-      
-      const stats = window.InlineStorage.getStats(allMessages);
-      window.InlineUI.renderStats(stats);
-      window.InlineUI.renderLastIndexedAt(now);
-      window.InlineUI.clearIndexErrors();
-      await updateIndexSize();
-      
-      if (addedCount > 0) {
-        window.InlineUI.showStatus(`Добавлено ${addedCount} сообщений`, 'success');
-      } else {
-        window.InlineUI.showStatus('Новых сообщений не найдено', 'success');
-      }
-      
-      const searchInput = document.getElementById('ls-searchInput');
-      if (searchInput && searchInput.value.trim()) {
-        performSearch(searchInput.value.trim());
-      } else {
-        window.InlineUI.renderEmptyState('no-query');
-      }
-      
-    } catch (error) {
-      console.error('[LS Search] Indexing error:', error);
-      window.InlineUI.showStatus('Ошибка: ' + error.message, 'error');
+    try {
+      // The background orchestrates the whole pass and reports the result.
+      await indexViaBackgroundScript();
     } finally {
       if (indexBtn) {
         indexBtn.disabled = false;
@@ -1620,193 +1657,171 @@
     }
   }
   
+  /**
+   * Render the outcome of a dialog indexing job and refresh the panel.
+   *
+   * Called both from the message response and from the storage listener, so a
+   * job that finished while the service worker was restarting still updates the
+   * page. The second call for the same job is ignored.
+   *
+   * @param {object} result
+   */
+  async function applyIndexResult(result) {
+    if (!result) return;
+    if (result.jobId && result.jobId === lastAppliedIndexJobId) return;
+    if (result.jobId) lastAppliedIndexJobId = result.jobId;
+
+    const messages = await window.InlineStorage.getMessages();
+    const stats = window.InlineStorage.getStats(messages);
+    const indexedAt =
+      result.indexedAt || (await window.InlineStorage.loadLastIndexedAt());
+
+    window.InlineUI.renderStats(stats);
+    window.InlineUI.renderLastIndexedAt(indexedAt);
+    await updateIndexSize();
+    await refreshAutoSettingsUI();
+
+    const errors = Array.isArray(result.errors) ? result.errors : [];
+    if (errors.length > 0) {
+      window.InlineUI.renderIndexErrors(errors);
+    } else {
+      window.InlineUI.clearIndexErrors();
+    }
+
+    if (result.skipped) {
+      window.InlineUI.showStatus(
+        result.reason || 'Автообновление пропущено',
+        'success',
+      );
+    } else if (result.cancelled) {
+      window.InlineUI.showStatus(
+        `Индексация остановлена. Добавлено ${result.addedCount || 0} сообщений`,
+        'success',
+      );
+    } else if (errors.length > 0) {
+      window.InlineUI.showStatus(
+        `Готово, но ${errors.length} ошибок. Добавлено ${
+          result.addedCount || 0
+        } сообщений`,
+        'error',
+      );
+    } else if (result.addedCount > 0) {
+      window.InlineUI.showStatus(
+        `Добавлено ${result.addedCount} сообщений; пропущено ${
+          result.skippedTalks || 0
+        } без изменений`,
+        'success',
+      );
+    } else if (result.skippedTalks > 0 && stats.messagesCount > 0) {
+      window.InlineUI.showStatus(
+        `Всё актуально: пропущено ${result.skippedTalks} диалогов без изменений`,
+        'success',
+      );
+    } else if (stats.messagesCount === 0) {
+      window.InlineUI.showStatus(
+        'Индекс пуст: нажмите «Индексировать» ещё раз',
+        'error',
+      );
+    } else {
+      window.InlineUI.showStatus('Новых сообщений не найдено', 'success');
+    }
+
+    const searchInput = document.getElementById('ls-searchInput');
+    if (searchInput && searchInput.value.trim()) {
+      performSearch(searchInput.value.trim());
+    } else {
+      window.InlineUI.renderEmptyState('no-query');
+    }
+  }
+
+  /**
+   * Apply the finished job written by background.js. Covers the case when the
+   * message port is gone: the worker was stopped and restarted mid-indexing.
+   *
+   * @param {object} record
+   */
+  async function handleJobResultRecord(record) {
+    if (record.kind === 'forum') {
+      if (String(record.postId || '') !== String(currentForumPostId || '')) {
+        return;
+      }
+      applyForumIndexResult(record.result || { jobId: record.jobId });
+      return;
+    }
+
+    if (record.error) {
+      window.InlineUI.showStatus(
+        `Ошибка индексации: ${record.error}`,
+        'error',
+      );
+      return;
+    }
+
+    await applyIndexResult(record.result);
+  }
+
+  function attachJobResultListener() {
+    if (
+      jobResultListenerAttached ||
+      typeof chrome === 'undefined' ||
+      !chrome.storage ||
+      !chrome.storage.onChanged
+    ) {
+      return;
+    }
+
+    jobResultListenerAttached = true;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[JOB_RESULT_KEY]) return;
+
+      const record = changes[JOB_RESULT_KEY].newValue;
+      if (!record || typeof record !== 'object') return;
+
+      handleJobResultRecord(record).catch(() => {});
+    });
+  }
+
   // Index via background script (full indexing like popup)
   async function indexViaBackgroundScript() {
-    console.log('Index-BG', 'Starting indexViaBackgroundScript');
+    debugLog('Index-BG', 'Starting indexViaBackgroundScript');
     
     return new Promise((resolve) => {
-      console.log('Index-BG', 'Sending indexAllSections request to background');
+      debugLog('Index-BG', 'Sending indexAllSections request to background');
       
       chrome.runtime.sendMessage({ action: 'indexAllSections' }, (response) => {
         (async () => {
-          console.log('Index-BG', 'Got response from background', { response: response ? 'exists' : 'null' });
+          debugLog('Index-BG', 'Got response from background', { response: response ? 'exists' : 'null' });
           try {
             if (chrome.runtime.lastError) {
-              console.log('Index-BG', 'Runtime error', { error: chrome.runtime.lastError.message });
-              window.InlineUI.showStatus('Ошибка: ' + chrome.runtime.lastError.message, 'error');
+              // The worker may have been restarted mid-job; in that case the
+              // result arrives through the storage listener below.
+              debugLog('Index-BG', 'Runtime error', { error: chrome.runtime.lastError.message });
+              window.InlineUI.showStatus(
+                'Связь прервана, жду результат индексации…',
+                'success',
+              );
               resolve();
               return;
             }
             
             if (response && response.error) {
-              console.log('Index-BG', 'Response error', { error: response.error });
+              debugLog('Index-BG', 'Response error', { error: response.error });
               window.InlineUI.showStatus(response.error, 'error');
               resolve();
               return;
             }
             
             if (response && response.result) {
-              const result = response.result;
-              const messages = await window.InlineStorage.loadMessages();
-              const stats = window.InlineStorage.getStats(messages);
-              const indexedAt =
-                result.indexedAt || (await window.InlineStorage.loadLastIndexedAt());
-
-              window.InlineUI.renderStats(stats);
-              window.InlineUI.renderLastIndexedAt(indexedAt);
-              await updateIndexSize();
-              await refreshAutoSettingsUI();
-
-              const errors = Array.isArray(result.errors) ? result.errors : [];
-              if (errors.length > 0) {
-                window.InlineUI.renderIndexErrors(errors);
-              } else {
-                window.InlineUI.clearIndexErrors();
-              }
-
-              if (result.skipped) {
-                window.InlineUI.showStatus(
-                  result.reason || 'Автообновление пропущено',
-                  'success',
-                );
-              } else if (result.cancelled) {
-                window.InlineUI.showStatus(
-                  `Индексация остановлена. Добавлено ${result.addedCount || 0} сообщений`,
-                  'success',
-                );
-              } else if (errors.length > 0) {
-                window.InlineUI.showStatus(
-                  `Готово, но ${errors.length} ошибок. Добавлено ${
-                    result.addedCount || 0
-                  } сообщений`,
-                  'error',
-                );
-              } else if (result.addedCount > 0) {
-                window.InlineUI.showStatus(
-                  `Добавлено ${result.addedCount} сообщений; пропущено ${
-                    result.skippedTalks || 0
-                  } без изменений`,
-                  'success',
-                );
-              } else if (result.skippedTalks > 0 && stats.messagesCount > 0) {
-                window.InlineUI.showStatus(
-                  `Всё актуально: пропущено ${result.skippedTalks} диалогов без изменений`,
-                  'success',
-                );
-              } else if (stats.messagesCount === 0) {
-                window.InlineUI.showStatus(
-                  'Индекс пуст: нажмите «Индексировать» ещё раз',
-                  'error',
-                );
-              } else {
-                window.InlineUI.showStatus('Новых сообщений не найдено', 'success');
-              }
-
-              const searchInput = document.getElementById('ls-searchInput');
-              if (searchInput && searchInput.value.trim()) {
-                performSearch(searchInput.value.trim());
-              } else {
-                window.InlineUI.renderEmptyState('no-query');
-              }
-
+              await applyIndexResult(response.result);
               resolve();
               return;
             }
 
-            if (response && Array.isArray(response.messages)) {
-              const newMessages = response.messages;
-              const indexedSections = response.indexedSections || [];
-              
-              console.log('Index-BG', 'Indexed sections', {
-                sections: indexedSections,
-                totalFromBackground: newMessages.length,
-              });
-              
-              // Merge with existing messages
-              const existingMessages = await window.InlineStorage.loadMessages();
-              const allMessages = window.InlineStorage.mergeMessages(existingMessages, newMessages);
-              const addedCount = allMessages.length - existingMessages.length;
-              const now = Date.now();
-
-              console.log('Index-BG', 'Final result', {
-                existingCount: existingMessages.length,
-                newCount: newMessages.length,
-                addedCount: addedCount,
-                totalInStorage: allMessages.length,
-              });
-
-              const saved = await window.InlineStorage.saveMessages(allMessages, {
-                indexedAt: now,
-              });
-              if (!saved) {
-                window.InlineUI.showStatus(
-                  'Не удалось сохранить индекс: проверьте квоту хранилища',
-                  'error',
-                );
-                resolve();
-                return;
-              }
-              
-              const stats = window.InlineStorage.getStats(allMessages);
-              const skippedTalks = response.skippedTalks || 0;
-              const errors = Array.isArray(response.errors) ? response.errors : [];
-
-              console.log('Index-BG', 'Stats after save', {
-                dialogsCount: stats.dialogsCount,
-                messagesCount: stats.messagesCount,
-                skippedTalks,
-                errors: errors.length,
-              });
-              window.InlineUI.renderStats(stats);
-              window.InlineUI.renderLastIndexedAt(now);
-              await updateIndexSize();
-
-              if (errors.length > 0) {
-                window.InlineUI.renderIndexErrors(errors);
-              } else {
-                window.InlineUI.clearIndexErrors();
-              }
-
-              if (response.cancelled) {
-                window.InlineUI.showStatus(
-                  `Индексация остановлена. Добавлено ${addedCount} сообщений`,
-                  'success',
-                );
-              } else if (errors.length > 0) {
-                console.error('[LS Search] Indexing errors:', errors);
-                window.InlineUI.showStatus(
-                  `Готово, но ${errors.length} диалогов с ошибками. Добавлено ${addedCount} сообщений`,
-                  'error',
-                );
-              } else if (addedCount > 0) {
-                window.InlineUI.showStatus(
-                  `Добавлено ${addedCount} сообщений из ${indexedSections.length} разделов; пропущено ${skippedTalks} без изменений`,
-                  'success',
-                );
-              } else if (skippedTalks > 0) {
-                window.InlineUI.showStatus(
-                  `Всё актуально: пропущено ${skippedTalks} диалогов без изменений`,
-                  'success',
-                );
-              } else {
-                window.InlineUI.showStatus('Новых сообщений не найдено', 'success');
-              }
-              
-              const searchInput = document.getElementById('ls-searchInput');
-              if (searchInput && searchInput.value.trim()) {
-                performSearch(searchInput.value.trim());
-              } else {
-              window.InlineUI.renderEmptyState('no-query');
-              }
-              
-              resolve();
-            } else {
-              console.log('Index-BG', 'No messages in response');
-              window.InlineUI.showStatus('Не удалось извлечь сообщения', 'error');
-              resolve();
-            }
+            // background answers with { result } or { error } only.
+            window.InlineUI.showStatus('Не удалось извлечь сообщения', 'error');
+            resolve();
           } catch (err) {
-            console.log('Index-BG', 'Error processing response', { error: err.message });
+            debugLog('Index-BG', 'Error processing response', { error: err.message });
             console.error('[LS Search] Indexing error:', err);
             window.InlineUI.showStatus('Ошибка: ' + err.message, 'error');
             resolve();
@@ -1854,7 +1869,7 @@
   
   // Perform search
   function performSearch(query) {
-    window.InlineStorage.loadMessages().then((messages) => {
+    window.InlineStorage.getMessages().then((messages) => {
       if (!messages.length) {
         window.InlineUI.renderEmptyState('no-index');
         return;
@@ -1935,7 +1950,7 @@
     return null;
   }
 
-  async function resolveMessageTarget(msg) {
+  async function resolveMessageTarget(msg, options = {}) {
     if (!msg) return null;
     if (msg.messageId && msg.url) {
       return `${msg.url}#msg_${msg.messageId}`;
@@ -1949,51 +1964,93 @@
       return resolvedMessageTargets.get(key);
     }
 
+    // A newer click bumps the counter: stop spending requests for the old one.
+    const requestId = lastResolveRequest;
+    const deadline = Date.now() + RESOLVE_BUDGET_MS;
+    const stale = () => requestId !== lastResolveRequest;
+    const onProgress =
+      typeof options.onProgress === 'function' ? options.onProgress : null;
+
     const baseUrl = `${window.location.origin}/users/my_talks/${msg.talkId}/`;
     const baseHtml = await fetchTalkPageHtml(baseUrl);
-    if (!baseHtml) {
-      return msg.url || baseUrl;
+    if (stale()) return null;
+
+    if (baseHtml) {
+      const foundOnBase = findMessageOnPage(baseHtml, baseUrl, msg);
+      if (foundOnBase) {
+        resolvedMessageTargets.set(key, foundOnBase);
+        return foundOnBase;
+      }
     }
 
-    const foundOnBase = findMessageOnPage(baseHtml, baseUrl, msg);
-    if (foundOnBase) {
-      resolvedMessageTargets.set(key, foundOnBase);
-      return foundOnBase;
-    }
+    const baseDoc = baseHtml
+      ? new DOMParser().parseFromString(baseHtml, 'text/html')
+      : null;
+    let lastLinkedPage = baseDoc ? getLastLinkedTalkPage(baseDoc) : 0;
+    let endPage =
+      lastLinkedPage > 0
+        ? Math.min(RESOLVE_MAX_PAGES, lastLinkedPage + 1)
+        : RESOLVE_MAX_PAGES;
 
-    const baseDoc = new DOMParser().parseFromString(baseHtml, 'text/html');
-    let lastLinkedPage = getLastLinkedTalkPage(baseDoc);
-    let maxPage = lastLinkedPage > 0 ? Math.min(200, lastLinkedPage + 1) : 200;
-    let failures = 0;
+    let page = 1;
+    let emptyBatches = 0;
 
-    for (let page = 1; page <= maxPage; page++) {
-      const pageUrl = `${baseUrl}page${page}/`;
-      const html = await fetchTalkPageHtml(pageUrl);
-      if (!html) {
-        failures++;
-        if (failures >= 3) break;
-        continue;
-      }
-      failures = 0;
+    while (page <= endPage && Date.now() < deadline) {
+      if (stale()) return null;
 
-      const found = findMessageOnPage(html, pageUrl, msg);
-      if (found) {
-        resolvedMessageTargets.set(key, found);
-        return found;
-      }
+      const batchEnd = Math.min(endPage, page + RESOLVE_BATCH_SIZE - 1);
+      const pages = [];
+      for (let p = page; p <= batchEnd; p++) pages.push(p);
 
-      const pageDoc = new DOMParser().parseFromString(html, 'text/html');
-      if (!pageDoc.querySelector('.user_message')) {
-        break;
-      }
+      const results = await Promise.all(
+        pages.map(async (pageNumber) => {
+          const pageUrl = `${baseUrl}page${pageNumber}/`;
+          // One retry instead of two: this is a navigation aid, not indexing.
+          return { pageUrl, html: await fetchTalkPageHtml(pageUrl, 1) };
+        }),
+      );
 
-      if (lastLinkedPage === 0) {
-        const hint = getLastLinkedTalkPage(pageDoc);
-        if (hint > 0) {
-          lastLinkedPage = hint;
-          maxPage = Math.min(200, lastLinkedPage + 1);
+      if (stale()) return null;
+
+      let reachedEnd = false;
+      let loaded = 0;
+
+      for (const result of results) {
+        if (!result.html) continue;
+        loaded += 1;
+
+        const found = findMessageOnPage(result.html, result.pageUrl, msg);
+        if (found) {
+          resolvedMessageTargets.set(key, found);
+          return found;
+        }
+
+        const pageDoc = new DOMParser().parseFromString(
+          result.html,
+          'text/html',
+        );
+        if (!pageDoc.querySelector('.user_message')) {
+          reachedEnd = true;
+          break;
+        }
+
+        if (lastLinkedPage === 0) {
+          const hint = getLastLinkedTalkPage(pageDoc);
+          if (hint > 0) {
+            lastLinkedPage = hint;
+            endPage = Math.min(RESOLVE_MAX_PAGES, hint + 1);
+          }
         }
       }
+
+      if (reachedEnd) break;
+
+      // Two batches without a single answer mean the site is not responding.
+      emptyBatches = loaded === 0 ? emptyBatches + 1 : 0;
+      if (emptyBatches >= 2) break;
+
+      page = batchEnd + 1;
+      if (onProgress) onProgress(Math.min(batchEnd, endPage), endPage);
     }
 
     // At least open the dialog when the message cannot be located.
@@ -2027,8 +2084,21 @@
     link.style.opacity = '0.6';
     window.InlineUI.showStatus('Ищу сообщение в диалоге...', 'success');
 
+    const requestId = ++lastResolveRequest;
+
     try {
-      const target = await resolveMessageTarget(msg);
+      const target = await resolveMessageTarget(msg, {
+        onProgress: (checked, total) => {
+          window.InlineUI.showStatus(
+            `Ищу сообщение: проверено ${checked} из ${total} страниц...`,
+            'success',
+          );
+        },
+      });
+
+      // A newer click owns the UI now; do not navigate for the old one.
+      if (requestId !== lastResolveRequest) return;
+
       if (!target) {
         window.InlineUI.showStatus('Не удалось найти сообщение', 'error');
         return;
@@ -2043,144 +2113,6 @@
       delete link.dataset.resolving;
       link.style.opacity = '';
     }
-  }
-  
-  // Fallback extraction from current page
-  async function extractFromCurrentPage() {
-    const messages = [];
-    
-    // Try to extract from talks list
-    const talkRows = document.querySelectorAll('#talks_table tr[id^="talk_"]');
-    
-    talkRows.forEach((row) => {
-      const talkId = row.id.replace('talk_', '');
-      const msg = parseTalkRow(row, talkId);
-      if (msg) {
-        messages.push(msg);
-      }
-    });
-    
-    return messages;
-  }
-  
-  // Parse talk row (simplified version from content.js)
-  function parseTalkRow(row, talkId) {
-    try {
-      // Get partner username
-      let partner = '';
-      const firstCol = row.querySelector('td:first-child');
-      
-      if (firstCol) {
-        const allLinks = firstCol.querySelectorAll('a[href^="/users/"]');
-        
-        let partnerLink = null;
-        if (allLinks.length >= 2) {
-          partnerLink = allLinks[1];
-        } else if (allLinks.length === 1 && allLinks[0].textContent.trim()) {
-          partnerLink = allLinks[0];
-        }
-        
-        if (partnerLink) {
-          partner = partnerLink.textContent.trim();
-        }
-      }
-      
-      // Get last message text
-      let text = '';
-      const messageDiv = document.getElementById('talk_text_' + talkId);
-      if (messageDiv) {
-        const clone = messageDiv.cloneNode(true);
-        clone.querySelectorAll('img').forEach(function(img) { img.remove(); });
-        text = clone.textContent.trim();
-      }
-      
-      // Get timestamp
-      let timestamp = null;
-      const secondCol = row.querySelector('td:last-child');
-      if (secondCol) {
-        const timeSpan = secondCol.querySelector('.clear span');
-        if (timeSpan) {
-          const dateText = timeSpan.textContent.trim();
-          timestamp = parseRussianDate(dateText);
-        }
-      }
-      
-      text = text.replace(/\s+/g, ' ').trim();
-      
-      return {
-        text: text,
-        partner: partner,
-        timestamp: timestamp,
-        talkId: talkId,
-        url: '/users/my_talks/' + talkId + '/'
-      };
-      
-    } catch {
-      return null;
-    }
-  }
-  
-  // Parse Russian date
-  function parseRussianDate(dateStr) {
-    if (!dateStr) return null;
-    
-    dateStr = dateStr.trim();
-    
-    try {
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      
-      const shortDateMatch = dateStr.match(/(\d{1,2})\s*(&nbsp;)?\s*(\w+)\s+(\d{1,2}):(\d{2})/);
-      if (shortDateMatch) {
-        const day = parseInt(shortDateMatch[1]);
-        const monthName = shortDateMatch[3].replace('&nbsp;', ' ');
-        const hours = parseInt(shortDateMatch[4]);
-        const minutes = parseInt(shortDateMatch[5]);
-        
-        const monthNum = getRussianMonth(monthName);
-        if (monthNum !== -1) {
-          return new Date(currentYear, monthNum, day, hours, minutes).getTime();
-        }
-      }
-      
-      const fullDateMatch = dateStr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})\s+(\d{1,2}):(\d{2})/);
-      if (fullDateMatch) {
-        const day = parseInt(fullDateMatch[1]);
-        const monthName = fullDateMatch[2];
-        const year = parseInt(fullDateMatch[3]);
-        const hours = parseInt(fullDateMatch[4]);
-        const minutes = parseInt(fullDateMatch[5]);
-        
-        const monthNum = getRussianMonth(monthName);
-        if (monthNum !== -1) {
-          return new Date(year, monthNum, day, hours, minutes).getTime();
-        }
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
-  }
-  
-  function getRussianMonth(monthName) {
-    var months = {
-      'января': 0, 'янв': 0,
-      'февраля': 1, 'фев': 1,
-      'марта': 2, 'мар': 2,
-      'апреля': 3, 'апр': 3,
-      'мая': 4,
-      'июня': 5, 'июн': 5,
-      'июля': 6, 'июл': 6,
-      'августа': 7, 'авг': 7,
-      'сентября': 8, 'сен': 8,
-      'октября': 9, 'окт': 9,
-      'ноября': 10, 'ноя': 10,
-      'декабря': 11, 'дек': 11
-    };
-    
-    var normalized = monthName.toLowerCase().replace('&nbsp;', '');
-    return months[normalized] !== undefined ? months[normalized] : -1;
   }
   
   // Start initialization when DOM is ready
@@ -2204,6 +2136,12 @@
       fetchAllTalkPages,
       findMessageOnPage,
       resolveMessageTarget,
+      applyIndexResult,
+      applyForumIndexResult,
+      handleJobResultRecord,
+      attachJobResultListener,
+      performForumSearch,
+      mergeForumResults,
       setupKeyboardNavigation,
       isEditableElement,
       isForumTopicPath,

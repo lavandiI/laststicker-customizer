@@ -50,6 +50,7 @@ Effective date / Дата вступления в силу: 2026-11-09
 ### Разрешения
 
 - `storage` — локальное хранение: диалоги в `chrome.storage.local`, форум в IndexedDB;
+- `unlimitedStorage` — снятие квоты браузера на объём локального индекса диалогов, чтобы большие архивы не теряли уже собранные сообщения; данные остаются в браузере;
 - `scripting` — внедрение панели поиска и парсера на страницы `laststicker.ru`;
 - `offscreen` — локальный парсинг HTML без открытой вкладки;
 - `alarms` — периодическая проверка автообновления;
@@ -121,6 +122,7 @@ The extension works only on `laststicker.ru` and `www.laststicker.ru`. It reads 
 ### Permissions
 
 - `storage` - local storage: dialogs in `chrome.storage.local`, forum in IndexedDB;
+- `unlimitedStorage` - lifts the browser quota on the local dialog index size, so large archives do not lose already collected messages; the data stays in the browser;
 - `scripting` - inject the search panel and parser into `laststicker.ru` pages;
 - `offscreen` - local HTML parsing without an open tab;
 - `alarms` - periodic automatic refresh;

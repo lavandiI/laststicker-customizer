@@ -70,14 +70,6 @@ describe('theme core', () => {
     expect(core.resolveTheme({ enabled: false })).toBe('light');
   });
 
-  test('builds dataset attributes', () => {
-    expect(core.themeDataset({ enabled: true, palette: 'black', images: 'soft' })).toEqual({
-      lsTheme: 'dark',
-      lsPalette: 'black',
-      lsImages: 'soft',
-    });
-  });
-
   test('does not mutate the default theme', () => {
     const theme = core.normalizeTheme(null);
     theme.enabled = true;

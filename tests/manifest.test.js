@@ -10,7 +10,19 @@ describe('manifest', () => {
   });
 
   test('keeps only the permissions justified in the privacy policy', () => {
-    expect(manifest.permissions.sort()).toEqual(['alarms', 'offscreen', 'scripting', 'storage']);
+    expect(manifest.permissions.sort()).toEqual([
+      'alarms',
+      'offscreen',
+      'scripting',
+      'storage',
+      'unlimitedStorage',
+    ]);
+  });
+
+  // chrome.storage.local is capped at 5-10 MB depending on the Chrome version,
+  // and the whole dialog index is stored there as a single JSON string.
+  test('lifts the chrome.storage.local quota for the dialog index', () => {
+    expect(manifest.permissions).toContain('unlimitedStorage');
   });
 
   test('version matches package.json', () => {

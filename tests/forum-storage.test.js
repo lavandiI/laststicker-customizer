@@ -157,3 +157,149 @@ describe('forum storage', () => {
     expect((await storage.getTopic('2')).title).toBe('Two');
   });
 });
+
+describe('forum comment urls', () => {
+  beforeEach(async () => {
+    await storage.deleteDatabase();
+  });
+
+  afterAll(async () => {
+    await storage.closeDb();
+  });
+
+  test('keeps site links as they are', () => {
+    expect(storage.normalizeUrl('https://www.laststicker.ru/blog/post1/#c2')).toBe(
+      'https://www.laststicker.ru/blog/post1/#c2',
+    );
+    expect(storage.normalizeUrl('/blog/post1/#c2')).toBe('/blog/post1/#c2');
+  });
+
+  test('upgrades the bare and insecure host forms', () => {
+    expect(storage.normalizeUrl('https://laststicker.ru/blog/post1/')).toBe(
+      'https://www.laststicker.ru/blog/post1/',
+    );
+    expect(storage.normalizeUrl('http://www.laststicker.ru/blog/post1/')).toBe(
+      'https://www.laststicker.ru/blog/post1/',
+    );
+  });
+
+  test('drops links that would end up in a foreign href', () => {
+    expect(storage.normalizeUrl('javascript:alert(1)')).toBe('');
+    expect(storage.normalizeUrl('https://evil.example/blog/post1/')).toBe('');
+    expect(storage.normalizeUrl('//evil.example/x')).toBe('');
+    expect(storage.normalizeUrl(undefined)).toBe('');
+    expect(storage.normalizeUrl(42)).toBe('');
+  });
+
+  test('normalizes the url on write', async () => {
+    await storage.putComments(
+      [
+        comment({ key: 'forum:1:1', commentId: '1', url: 'javascript:alert(1)' }),
+        comment({
+          key: 'forum:1:2',
+          commentId: '2',
+          url: 'http://laststicker.ru/blog/post1/#c2',
+        }),
+      ],
+      0,
+    );
+
+    const all = await storage.searchComments('пакетик', { limit: 10 });
+    const urls = all.results.map((item) => item.url).sort();
+
+    expect(urls).toEqual(['', 'https://www.laststicker.ru/blog/post1/#c2']);
+  });
+});
+
+describe('forum search paging', () => {
+  const many = (count, postId = '1') =>
+    Array.from({ length: count }, (_, index) =>
+      comment({
+        key: `forum:${postId}:${index}`,
+        postId,
+        commentId: String(index),
+        timestamp: 100 + index,
+        text: `пакетик ${index}`,
+      }),
+    );
+
+  beforeEach(async () => {
+    await storage.deleteDatabase();
+  });
+
+  afterAll(async () => {
+    await storage.closeDb();
+  });
+
+  test('stops the scan one match past the requested page', async () => {
+    await storage.putComments(many(10), 0);
+
+    const page = await storage.searchComments('пакетик', { limit: 2 });
+
+    expect(page.results).toHaveLength(2);
+    expect(page.results.map((item) => item.commentId)).toEqual(['9', '8']);
+    expect(page.truncated).toBe(true);
+    // Only the requested page plus one look-ahead match was read.
+    expect(page.total).toBe(3);
+    expect(page.hasMore).toBe(true);
+  });
+
+  test('applies the offset to a truncated scan', async () => {
+    await storage.putComments(many(10), 0);
+
+    const page = await storage.searchComments('пакетик', {
+      limit: 2,
+      offset: 2,
+    });
+
+    expect(page.results.map((item) => item.commentId)).toEqual(['7', '6']);
+    expect(page.truncated).toBe(true);
+    expect(page.total).toBe(5);
+    expect(page.hasMore).toBe(true);
+  });
+
+  test('reports an exact total when the whole index fits the page', async () => {
+    await storage.putComments(many(4), 0);
+
+    const page = await storage.searchComments('пакетик', { limit: 50 });
+
+    expect(page.results).toHaveLength(4);
+    expect(page.truncated).toBe(false);
+    expect(page.total).toBe(4);
+    expect(page.hasMore).toBe(false);
+  });
+
+  test('matches the author even when the message text does not', async () => {
+    await storage.putComments(
+      [
+        comment({
+          key: 'forum:1:1',
+          commentId: '1',
+          author: 'Пресс',
+          text: 'Текст без совпадения',
+        }),
+      ],
+      0,
+    );
+
+    const page = await storage.searchComments('пресс');
+
+    expect(page.total).toBe(1);
+    expect(page.results[0].commentId).toBe('1');
+  });
+
+  test('counts only the requested topic when the scan is truncated', async () => {
+    await storage.putComments([...many(3, '1'), ...many(5, '2')], 0);
+
+    const page = await storage.searchComments('пакетик', {
+      postId: '2',
+      limit: 1,
+    });
+
+    expect(page.results).toHaveLength(1);
+    expect(page.results[0].postId).toBe('2');
+    expect(page.truncated).toBe(true);
+    // One match for the page plus one look-ahead match.
+    expect(page.total).toBe(2);
+  });
+});

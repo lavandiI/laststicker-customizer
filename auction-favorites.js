@@ -1,7 +1,7 @@
 // LastSticker Customizer - favorite stars in auction lists.
-// Adds the site's own star to every active auction row, adds/removes the
-// favorite through the site's AJAX endpoint, and restores the initial state
-// from the "Избранные аукционы" page.
+// Adds the site's own star to every auction row (active and recently ended),
+// adds/removes the favorite through the site's AJAX endpoint, and restores the
+// initial state from the "Избранные аукционы" page.
 
 (function (root) {
   'use strict';
@@ -12,14 +12,55 @@
   const FAVORITE_NO = 'forum_favorite_button_no';
   const FAVORITE_ENDPOINT = '/inc/site/ajax/user_forum_post_rel_img.php';
   const FAVORITE_PAGE = '/auction/favorite/';
-  const MAX_FAVORITE_PAGES = 20;
+  // Most accounts have a single page of favorites; the rest are only fetched
+  // when the first page links them.
+  const MAX_FAVORITE_PAGES = 3;
   const FETCH_TIMEOUT_MS = 10000;
   const OBSERVER_DELAY_MS = 50;
+  const WARMUP_DELAY_MS = 300;
+  const FAVORITES_CACHE_KEY = 'ls_auction_favorites_cache';
+  const FAVORITES_CACHE_TTL_MS = 5 * 60 * 1000;
+  const STATUS_ID = 'ls-auction-status';
+  const STATUS_TIMEOUT_MS = 4000;
 
-  function normalizeText(value) {
-    return String(value || '')
-      .replace(/\s+/g, ' ')
-      .trim();
+  function getSessionStorage() {
+    try {
+      return root.sessionStorage || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function readCachedFavoriteIds(storage) {
+    if (!storage) return null;
+
+    try {
+      const raw = storage.getItem(FAVORITES_CACHE_KEY);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.ids)) return null;
+
+      const savedAt = Number(parsed.savedAt) || 0;
+      if (Date.now() - savedAt > FAVORITES_CACHE_TTL_MS) return null;
+
+      return parsed.ids.map(String);
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCachedFavoriteIds(storage, ids) {
+    if (!storage) return;
+
+    try {
+      storage.setItem(
+        FAVORITES_CACHE_KEY,
+        JSON.stringify({ ids: Array.from(ids), savedAt: Date.now() }),
+      );
+    } catch {
+      // A full or unavailable session storage only loses the cache.
+    }
   }
 
   // Auction item pages and the pages that already render their own stars are
@@ -59,13 +100,6 @@
     return row.cells[row.cells.length - 1];
   }
 
-  function isEndedRow(row) {
-    const cell = getLastCell(row);
-    if (!cell) return true;
-
-    return /законч|заверш|архив/i.test(normalizeText(cell.textContent));
-  }
-
   function hasFavoriteControl(row) {
     if (!row || !row.querySelector) return false;
 
@@ -99,6 +133,56 @@
     star.title = label;
     star.setAttribute('aria-label', label);
     star.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+  }
+
+  function ensureStatusElement(doc) {
+    let element = doc.getElementById(STATUS_ID);
+    if (element) return element;
+
+    element = doc.createElement('div');
+    element.id = STATUS_ID;
+    element.setAttribute('role', 'status');
+    element.setAttribute('aria-live', 'polite');
+    element.style.cssText = [
+      'position:fixed',
+      'left:16px',
+      'bottom:16px',
+      'z-index:2147483000',
+      'max-width:320px',
+      'padding:8px 12px',
+      'border-radius:6px',
+      'background:#993333',
+      'color:#fff',
+      'font:13px/1.4 system-ui,-apple-system,sans-serif',
+      'box-shadow:0 2px 10px rgba(0,0,0,.35)',
+      'pointer-events:none',
+    ].join(';');
+    element.hidden = true;
+
+    (doc.body || doc.documentElement).appendChild(element);
+    return element;
+  }
+
+  /**
+   * Show a short-lived message on pages that have no search panel.
+   * Auction lists are not touched by the panel, so a failed star click would
+   * otherwise stay completely silent.
+   *
+   * @param {Document} doc
+   * @param {string} message
+   */
+  function showStatusMessage(doc, message) {
+    if (!doc || !doc.createElement) return;
+
+    const element = ensureStatusElement(doc);
+    element.textContent = message;
+    element.hidden = false;
+
+    if (element._lsTimer) clearTimeout(element._lsTimer);
+    element._lsTimer = setTimeout(() => {
+      element.hidden = true;
+      element._lsTimer = null;
+    }, STATUS_TIMEOUT_MS);
   }
 
   function createStar(doc, postId, isFavorite) {
@@ -156,7 +240,9 @@
     return Promise.resolve(
       fetchImpl(url, {
         credentials: 'same-origin',
-        cache: 'no-store',
+        // The page is fetched again on the next visit anyway; letting the
+        // browser reuse it avoids a full re-download for every list page.
+        cache: 'default',
         signal: controller.signal,
       }),
     ).finally(() => clearTimeout(timer));
@@ -231,8 +317,21 @@
       .finally(() => clearTimeout(timer));
   }
 
-  async function toggleFavorite(star, postId, request) {
+  /**
+   * Toggle the favorite state of one lot.
+   *
+   * @param {Element} star
+   * @param {string} postId
+   * @param {(postId: string, type: number) => Promise<object>} request
+   * @param {{onError?: (message: string) => void}} [options]
+   * @returns {Promise<boolean|null>} the new state, or null when nothing changed
+   */
+  async function toggleFavorite(star, postId, request, options = {}) {
     if (!star || star.dataset.lsPending === '1') return null;
+
+    const reportError = (message) => {
+      if (typeof options.onError === 'function') options.onError(message);
+    };
 
     // The site always sends type=0 and lets the server toggle the relation.
     // The response's class_fav tells us the new state.
@@ -240,18 +339,30 @@
 
     try {
       const data = await request(postId, 0);
-      if (!data || data.answer !== 'y') return null;
+      if (!data || data.answer !== 'y') {
+        reportError('сайт не подтвердил изменение');
+        return null;
+      }
 
       const nextClass = String(data.class_fav || '').trim();
       let next;
       if (nextClass === FAVORITE_YES) next = true;
       else if (nextClass === FAVORITE_NO) next = false;
-      else return null;
+      else {
+        reportError('сайт вернул неожиданный ответ');
+        return null;
+      }
 
       setStarState(star, next);
       return next;
     } catch (error) {
       console.warn('[LS AuctionFavorites] favorite request failed', error);
+      const message = String((error && error.message) || '');
+      reportError(
+        /^HTTP \d+$/.test(message)
+          ? `сайт ответил ${message.replace('HTTP ', '')}`
+          : 'нет связи с сайтом',
+      );
       return null;
     } finally {
       delete star.dataset.lsPending;
@@ -268,7 +379,9 @@
     let favoritesPromise = loaded ? Promise.resolve(favoriteIds) : null;
     let observer = null;
     let scanTimer = null;
+    let warmupTimer = null;
     let destroyed = false;
+    const pendingPosts = new Set();
 
     function syncStars(postId, isFavorite) {
       const target = String(postId);
@@ -280,27 +393,35 @@
     }
 
     async function handleActivate(star, postId) {
-      if (destroyed || star.dataset.lsActivating === '1') return;
-      star.dataset.lsActivating = '1';
+      const target = String(postId);
+
+      // The same lot can appear in two rows (subscriptions, duplicates). The
+      // server toggles the relation, so two parallel requests for one lot would
+      // cancel each other out.
+      if (destroyed || pendingPosts.has(target)) return;
+      pendingPosts.add(target);
 
       try {
-        if (!loaded && favoritesPromise) {
+        if (!loaded) {
           try {
-            await favoritesPromise;
+            await loadFavorites();
           } catch {
             // A failed initial fetch must not block the click.
           }
         }
         if (destroyed || !star.isConnected) return;
 
-        const next = await toggleFavorite(star, postId, request);
+        const next = await toggleFavorite(star, target, request, {
+          onError: (message) =>
+            showStatusMessage(doc, `Не удалось изменить избранное: ${message}`),
+        });
         if (next === null) return;
 
-        if (next) favoriteIds.add(String(postId));
-        else favoriteIds.delete(String(postId));
-        syncStars(postId, next);
+        if (next) favoriteIds.add(target);
+        else favoriteIds.delete(target);
+        syncStars(target, next);
       } finally {
-        delete star.dataset.lsActivating;
+        pendingPosts.delete(target);
       }
     }
 
@@ -375,19 +496,27 @@
       if (favoritesPromise) return favoritesPromise;
 
       favoritesPromise = (async () => {
-        try {
-          const fetched = await fetchFavoriteIds(fetchOptions);
-          fetched.forEach((id) => favoriteIds.add(id));
-        } catch (error) {
-          console.warn('[LS AuctionFavorites] favorites request failed', error);
-        } finally {
-          loaded = true;
-          if (!destroyed) {
-            doc.querySelectorAll('[data-ls-auction-fav]').forEach((star) => {
-              const postId = star.dataset.lsAuctionFav;
-              setStarState(star, favoriteIds.has(postId));
-            });
+        const storage = getSessionStorage();
+        const cached = readCachedFavoriteIds(storage);
+
+        if (cached) {
+          cached.forEach((id) => favoriteIds.add(String(id)));
+        } else {
+          try {
+            const fetched = await fetchFavoriteIds(fetchOptions);
+            fetched.forEach((id) => favoriteIds.add(id));
+            writeCachedFavoriteIds(storage, fetched);
+          } catch (error) {
+            console.warn('[LS AuctionFavorites] favorites request failed', error);
           }
+        }
+
+        loaded = true;
+        if (!destroyed) {
+          doc.querySelectorAll('[data-ls-auction-fav]').forEach((star) => {
+            const postId = star.dataset.lsAuctionFav;
+            setStarState(star, favoriteIds.has(postId));
+          });
         }
 
         return favoriteIds;
@@ -396,10 +525,27 @@
       return favoritesPromise;
     }
 
+    // The favorite list is only needed to paint the stars correctly, so it is
+    // fetched once the page is idle instead of on every list view.
+    function scheduleFavoritesWarmup() {
+      const run = () => {
+        if (!destroyed) loadFavorites();
+      };
+
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 2000 });
+        return;
+      }
+
+      warmupTimer = setTimeout(run, WARMUP_DELAY_MS);
+    }
+
     function destroy() {
       destroyed = true;
       if (scanTimer) clearTimeout(scanTimer);
       scanTimer = null;
+      if (warmupTimer) clearTimeout(warmupTimer);
+      warmupTimer = null;
       if (observer) observer.disconnect();
       observer = null;
       doc.querySelectorAll('[data-ls-auction-fav]').forEach((star) => {
@@ -407,13 +553,15 @@
       });
     }
 
-    if (!loaded) loadFavorites();
+    if (!loaded) scheduleFavoritesWarmup();
     scan();
     startObserver();
 
     return {
       favoriteIds,
-      ready: favoritesPromise,
+      get ready() {
+        return loadFavorites();
+      },
       scan,
       loadFavorites,
       syncStars,
@@ -497,12 +645,12 @@
     isAuctionListPath,
     isLoggedIn,
     getPostIdFromRow,
-    isEndedRow,
     hasFavoriteControl,
     parseFavoriteIds,
     fetchFavoriteIds,
     createStar,
     setStarState,
+    showStatusMessage,
     toggleFavorite,
     createController,
     start,

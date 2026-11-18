@@ -4,6 +4,77 @@ const path = require('path');
 const files = require('../scripts/runtime-files.js');
 const root = path.join(__dirname, '..');
 
+function readText(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+const manifest = JSON.parse(readText('manifest.json'));
+
+function collectManifestReferences(source) {
+  const references = new Set();
+  const add = (value) => {
+    if (typeof value === 'string' && value && !/^(?:https?:)?\/\//.test(value)) {
+      references.add(value);
+    }
+  };
+
+  if (source.background) add(source.background.service_worker);
+  if (source.action) {
+    add(source.action.default_popup);
+    Object.values(source.action.default_icon || {}).forEach(add);
+  }
+  Object.values(source.icons || {}).forEach(add);
+
+  (source.content_scripts || []).forEach((script) => {
+    (script.js || []).forEach(add);
+    (script.css || []).forEach(add);
+  });
+
+  (source.web_accessible_resources || []).forEach((entry) => {
+    (entry.resources || []).forEach(add);
+  });
+
+  return references;
+}
+
+function collectHtmlReferences(relativePath) {
+  const html = readText(relativePath);
+  const references = new Set();
+
+  const patterns = [
+    /<script[^>]+src=["']([^"']+)["']/gi,
+    /<link[^>]+href=["']([^"']+)["']/gi,
+  ];
+
+  patterns.forEach((pattern) => {
+    let match = pattern.exec(html);
+    while (match) {
+      references.add(match[1]);
+      match = pattern.exec(html);
+    }
+  });
+
+  return references;
+}
+
+function collectImportScripts(relativePath) {
+  const source = readText(relativePath);
+  const references = new Set();
+  const pattern = /importScripts\(\s*["']([^"']+)["']\s*\)/g;
+
+  let match = pattern.exec(source);
+  while (match) {
+    references.add(match[1]);
+    match = pattern.exec(source);
+  }
+
+  return references;
+}
+
+function missingFromPackage(references) {
+  return Array.from(references).filter((reference) => !files.includes(reference));
+}
+
 describe('runtime package', () => {
   test('includes the disabled icon set', () => {
     expect(files).toEqual(
@@ -49,5 +120,54 @@ describe('runtime package', () => {
       (file) => !fs.existsSync(path.join(root, file)),
     );
     expect(missing).toEqual([]);
+  });
+
+  test('ships every file the manifest points to', () => {
+    // A script added to the manifest but forgotten here would pass every other
+    // check and produce a ZIP that Chrome refuses to load.
+    expect(missingFromPackage(collectManifestReferences(manifest))).toEqual([]);
+  });
+
+  test('ships every script loaded from the extension pages', () => {
+    const pages = ['offscreen.html', 'popup.html', 'welcome.html'];
+    const referenced = new Set();
+
+    pages.forEach((page) => {
+      collectHtmlReferences(page).forEach((reference) => {
+        referenced.add(reference);
+      });
+    });
+
+    expect(missingFromPackage(referenced)).toEqual([]);
+  });
+
+  test('ships every script imported by the service worker', () => {
+    expect(missingFromPackage(collectImportScripts('background.js'))).toEqual(
+      [],
+    );
+  });
+
+  test('keeps development files out of the package', () => {
+    const forbidden = [
+      /^tests\//,
+      /^scripts\//,
+      /^docs\//,
+      /^store\//,
+      /^node_modules\//,
+      /^dist\//,
+      /^\.github\//,
+      /\.test\.js$/,
+      /^package(?:-lock)?\.json$/,
+      /^(?:README|CHANGELOG|AUDIT|PRIVACY)\.md$/,
+      /^eslint\.config\.js$/,
+      /^jest\.config\.js$/,
+      /^\.prettierrc$/,
+    ];
+
+    const leaked = files.filter((file) =>
+      forbidden.some((pattern) => pattern.test(file)),
+    );
+
+    expect(leaked).toEqual([]);
   });
 });

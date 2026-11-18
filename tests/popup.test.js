@@ -156,6 +156,37 @@ describe('popup settings', () => {
     expect(doc.documentElement.dataset.lsTheme).toBe('light');
   });
 
+  test('does not leak an unhandled rejection when the background port is closed', async () => {
+    let catchSpy = null;
+    chromeMock.runtime = {
+      getManifest: () => ({ version: '1.7.1' }),
+      sendMessage: jest.fn(() => {
+        const pending = Promise.reject(new Error('message port closed'));
+        catchSpy = jest.spyOn(pending, 'catch');
+        return pending;
+      }),
+    };
+
+    const doc = createPopupDocument();
+    LSPopup.initPopup(doc);
+    await flush();
+
+    const master = doc.getElementById('extensionEnabled');
+    master.checked = false;
+    change(master);
+    await flush();
+
+    expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'setExtensionEnabled',
+        enabled: false,
+      }),
+    );
+    expect(catchSpy).toHaveBeenCalled();
+    // The storage write is enough for the next page load.
+    expect(chromeMock.data.isEnabled).toBe(false);
+  });
+
   test('restores the saved theme when the master switch is enabled again', async () => {
     activeStore = createStoreMock({
       enabled: true,

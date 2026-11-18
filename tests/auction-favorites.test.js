@@ -2,7 +2,6 @@ const {
   isAuctionListPath,
   isLoggedIn,
   getPostIdFromRow,
-  isEndedRow,
   hasFavoriteControl,
   parseFavoriteIds,
   fetchFavoriteIds,
@@ -102,23 +101,12 @@ describe('auction favorite stars', () => {
     expect(isLoggedIn(document)).toBe(false);
   });
 
-  test('extracts the post id and status from a list row', () => {
+  test('extracts the post id from a list row', () => {
     createAuctionDocument();
     const rows = document.querySelectorAll('table.inner tr');
 
     expect(getPostIdFromRow(rows[0])).toBe('1103446');
     expect(getPostIdFromRow(rows[4])).toBe('1095514');
-
-    expect(isEndedRow(rows[0])).toBe(false);
-    expect(isEndedRow(rows[2])).toBe(true);
-
-    const active = document.createElement('tr');
-    active.innerHTML = '<td>1</td><td><a href="/auction/post1/">Лот</a></td>';
-    expect(isEndedRow(active)).toBe(false);
-
-    const ended = document.createElement('tr');
-    ended.innerHTML = '<td>1</td><td>Завершён</td>';
-    expect(isEndedRow(ended)).toBe(true);
   });
 
   test('recognises an existing favorite control', () => {
@@ -287,6 +275,126 @@ describe('auction favorite stars', () => {
     controller.destroy();
   });
 
+  test('sends one request per lot even when two rows are clicked', async () => {
+    document.body.innerHTML = `
+      <table class="inner"><tbody>
+        ${createAuctionRow({ postId: 777, title: 'Первый' })}
+        ${createAuctionRow({ postId: 777, title: 'Второй' })}
+      </tbody></table>
+    `;
+
+    let resolveRequest;
+    const request = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+
+    const controller = createController(document, {
+      favoriteIds: ['777'],
+      request,
+    });
+    const stars = document.querySelectorAll('[data-ls-auction-fav="777"]');
+
+    stars[0].click();
+    stars[1].click();
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(stars[0].dataset.lsPending).toBe('1');
+
+    resolveRequest({ answer: 'y', class_fav: 'forum_favorite_button_no' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith('777', 0);
+    expect(stars[0].className).toBe('forum_favorite_button_no');
+    expect(stars[1].className).toBe('forum_favorite_button_no');
+    expect(stars[0].dataset.lsPending).toBeUndefined();
+
+    controller.destroy();
+  });
+
+  test('tells the user why a star click did nothing', async () => {
+    document.body.innerHTML = `
+      <table class="inner"><tbody>
+        ${createAuctionRow({ postId: 777, title: 'Лот' })}
+      </tbody></table>
+    `;
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const request = jest.fn().mockResolvedValue({ answer: 'n' });
+    const controller = createController(document, {
+      favoriteIds: [],
+      request,
+    });
+
+    document.querySelector('[data-ls-auction-fav="777"]').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const status = document.getElementById('ls-auction-status');
+    expect(status).not.toBeNull();
+    expect(status.hidden).toBe(false);
+    expect(status.getAttribute('role')).toBe('status');
+    expect(status.textContent).toBe(
+      'Не удалось изменить избранное: сайт не подтвердил изменение',
+    );
+    expect(
+      document.querySelector('[data-ls-auction-fav="777"]').className,
+    ).toBe('forum_favorite_button_no');
+
+    controller.destroy();
+  });
+
+  test('reports an HTTP failure and hides the message afterwards', async () => {
+    jest.useFakeTimers();
+    try {
+      document.body.innerHTML = `
+        <table class="inner"><tbody>
+          ${createAuctionRow({ postId: 888, title: 'Лот' })}
+        </tbody></table>
+      `;
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const request = jest.fn().mockRejectedValue(new Error('HTTP 500'));
+      const controller = createController(document, {
+        favoriteIds: [],
+        request,
+      });
+
+      document.querySelector('[data-ls-auction-fav="888"]').click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const status = document.getElementById('ls-auction-status');
+      expect(status.textContent).toBe(
+        'Не удалось изменить избранное: сайт ответил 500',
+      );
+
+      jest.advanceTimersByTime(4000);
+      expect(status.hidden).toBe(true);
+
+      controller.destroy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('reports a network failure through the onError callback', async () => {
+    const star = createStar(document, '123', false);
+    document.body.appendChild(star);
+
+    const onError = jest.fn();
+    const rejected = jest.fn().mockRejectedValue(new Error('network'));
+
+    await expect(
+      toggleFavorite(star, '123', rejected, { onError }),
+    ).resolves.toBeNull();
+    expect(onError).toHaveBeenCalledWith('нет связи с сайтом');
+  });
+
   test('loads the initial favorite state from the site', async () => {
     createAuctionDocument();
     const fetchImpl = jest.fn(async () => ({
@@ -369,5 +477,137 @@ describe('auction favorite stars', () => {
     const pending = jest.fn();
     await expect(toggleFavorite(star, '123', pending)).resolves.toBeNull();
     expect(pending).not.toHaveBeenCalled();
+  });
+});
+
+describe('auction favorites loading', () => {
+  const CACHE_KEY = 'ls_auction_favorites_cache';
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    document.body.innerHTML = '';
+    sessionStorage.clear();
+    // jsdom has no requestIdleCallback: pin the setTimeout fallback.
+    delete window.requestIdleCallback;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllTimers();
+    sessionStorage.clear();
+    document.body.innerHTML = '';
+  });
+
+  function favoritesResponse(ids) {
+    return {
+      ok: true,
+      text: async () =>
+        ids
+          .map(
+            (id) =>
+              `<div id="forum_favorite_${id}" class="forum_favorite_button_yes"></div>`,
+          )
+          .join(''),
+    };
+  }
+
+  async function flush() {
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  }
+
+  test('waits for the page to be idle before loading the favorites', async () => {
+    createAuctionDocument();
+    const fetchImpl = jest.fn(async () => favoritesResponse(['1103446']));
+
+    const controller = createController(document, {
+      fetchOptions: { baseUrl: 'https://www.laststicker.ru', fetchImpl },
+    });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(300);
+    await flush();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(controller.isLoaded()).toBe(true);
+
+    controller.destroy();
+  });
+
+  test('reuses a fresh cached set without any request', async () => {
+    createAuctionDocument();
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ ids: ['1103828'], savedAt: Date.now() }),
+    );
+
+    const fetchImpl = jest.fn();
+    const controller = createController(document, {
+      fetchOptions: { baseUrl: 'https://www.laststicker.ru', fetchImpl },
+    });
+
+    jest.advanceTimersByTime(300);
+    await flush();
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(
+      document.querySelector('[data-ls-auction-fav="1103828"]').className,
+    ).toBe('forum_favorite_button_yes');
+
+    controller.destroy();
+  });
+
+  test('ignores an expired cache and stores the fetched set', async () => {
+    createAuctionDocument();
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        ids: ['1103828'],
+        savedAt: Date.now() - 10 * 60 * 1000,
+      }),
+    );
+
+    const fetchImpl = jest.fn(async () => favoritesResponse(['1102608']));
+    const controller = createController(document, {
+      fetchOptions: { baseUrl: 'https://www.laststicker.ru', fetchImpl },
+    });
+
+    jest.advanceTimersByTime(300);
+    await flush();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+    expect(cached.ids).toContain('1102608');
+    expect(cached.ids).not.toContain('1103828');
+
+    controller.destroy();
+  });
+
+  test('starts the load on a click when the warm-up has not run yet', async () => {
+    document.body.innerHTML = `
+      <table class="inner"><tbody>
+        ${createAuctionRow({ postId: 777, title: 'Лот' })}
+      </tbody></table>
+    `;
+
+    const fetchImpl = jest.fn(async () => favoritesResponse([]));
+    const request = jest.fn().mockResolvedValue({
+      answer: 'y',
+      class_fav: 'forum_favorite_button_yes',
+    });
+
+    const controller = createController(document, {
+      fetchOptions: { baseUrl: 'https://www.laststicker.ru', fetchImpl },
+      request,
+    });
+
+    document.querySelector('[data-ls-auction-fav="777"]').click();
+    await flush();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(1);
+
+    controller.destroy();
   });
 });

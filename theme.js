@@ -13,6 +13,9 @@
   let currentTheme = core.normalizeTheme(null);
   let masterEnabled = readMasterCache();
   let started = false;
+  // Every storage change bumps this; a `get` snapshot that resolves later than
+  // a change must not overwrite the newer value.
+  let stateRevision = 0;
 
   function readMasterCache() {
     try {
@@ -50,7 +53,10 @@
     masterEnabled = enabled !== false;
     writeMasterCache(masterEnabled);
 
-    if (masterEnabled && settings.cache !== false) {
+    // Write the cache even when the extension is off: the next page load reads
+    // it synchronously, and a stale "dark" record would paint the page dark
+    // before the async storage check switches it back to light.
+    if (settings.cache !== false) {
       store.writeThemeCache(normalized, resolved);
     }
   }
@@ -106,9 +112,12 @@
       applyWhenReady(core.DEFAULT_THEME, false, { cache: false });
     }
 
-    // chrome.storage.local is the source of truth.
+    // chrome.storage.local is the source of truth. The snapshot is only
+    // applied when no change arrived while it was in flight.
+    const snapshotRevision = stateRevision;
     loadState()
       .then(function (state) {
+        if (stateRevision !== snapshotRevision) return;
         applyWhenReady(state.theme, state.enabled);
       })
       .catch(function () {});
@@ -136,6 +145,7 @@
         }
 
         if (changed) {
+          stateRevision += 1;
           applyWhenReady(currentTheme, masterEnabled);
         }
       });

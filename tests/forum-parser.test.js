@@ -61,8 +61,23 @@ describe('forum parser', () => {
     expect(comments[2].text).toContain('авито');
   });
 
-  test('builds direct links without the page offset mistake', () => {
-    expect(parser.buildForumCommentUrl('712', 1, '8500')).toBe(
+  test('understands the short month names the site actually uses', () => {
+    const date = (value) => parser.parseForumDate(value);
+
+    expect(date('17 июля 2013 13:37')).toEqual(expect.any(Number));
+    expect(date('17 май 2013 13:37')).toEqual(expect.any(Number));
+    expect(date('17 мая 2013 13:37')).toEqual(expect.any(Number));
+    expect(date('17 сен 2013 13:37')).toEqual(expect.any(Number));
+    expect(date('17 сент 2013 13:37')).toEqual(expect.any(Number));
+
+    // May of the same year, both spellings.
+    expect(date('17 май 2013 13:37')).toBe(date('17 мая 2013 13:37'));
+    expect(date('17 сент 2013 13:37')).toBe(date('17 сен 2013 13:37'));
+
+    expect(date('17 непонятно 2013 13:37')).toBeNull();
+  });
+
+  test('builds direct links without the page offset mistake', () => {    expect(parser.buildForumCommentUrl('712', 1, '8500')).toBe(
       'https://www.laststicker.ru/blog/post712/#c8500',
     );
     expect(parser.buildForumCommentUrl('712', 2, '9396')).toBe(

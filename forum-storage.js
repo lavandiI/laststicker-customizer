@@ -75,6 +75,25 @@
     return dbPromise;
   }
 
+  // The URL ends up in an href, so only site addresses are accepted. Records
+  // are built by the indexer, but the value is normalised on the way in as well
+  // — the same allowlist the dialog index uses.
+  function normalizeUrl(value) {
+    if (typeof value !== 'string') return '';
+
+    const url = value.trim();
+    if (!url) return '';
+    if (url.startsWith('/') && !url.startsWith('//')) return url;
+
+    if (/^https?:\/\/(?:www\.)?laststicker\.ru\//i.test(url)) {
+      return url
+        .replace(/^http:\/\//i, 'https://')
+        .replace(/^https:\/\/laststicker\.ru\//i, 'https://www.laststicker.ru/');
+    }
+
+    return '';
+  }
+
   function normalizeComment(comment) {
     return {
       ...comment,
@@ -87,6 +106,7 @@
       timestamp: Number(comment.timestamp) || 0,
       page: Math.max(1, Number(comment.page) || 1),
       pageParam: Math.max(0, Number(comment.pageParam) || 0),
+      url: normalizeUrl(comment.url),
     };
   }
 
@@ -416,59 +436,78 @@
 
   function matchesQuery(comment, queryLower) {
     if (!queryLower) return false;
+
     // Only message text and author. The topic title is constant inside a
     // topic and would make every comment match a title-only query.
-    const haystack = [comment.text || '', comment.author || '']
-      .join(' ')
-      .toLowerCase();
-    return haystack.includes(queryLower);
+    const text = comment.text;
+    if (typeof text === 'string' && text.toLowerCase().includes(queryLower)) {
+      return true;
+    }
+
+    const author = comment.author;
+    return (
+      typeof author === 'string' && author.toLowerCase().includes(queryLower)
+    );
   }
 
   /**
    * Search comments by substring. Results are returned newest first.
    *
+   * The scan stops as soon as one match more than the requested page is found,
+   * so opening a query with many matches does not walk the whole index. In that
+   * case `total` is a lower bound and `truncated` is true; the panel then shows
+   * "показаны первые N" instead of an invented total.
+   *
    * @param {string} query
    * @param {{postId?: string, limit?: number, offset?: number}} [options]
-   * @returns {Promise<{results: object[], total: number, hasMore: boolean}>}
+   * @returns {Promise<{results: object[], total: number, hasMore: boolean, truncated: boolean}>}
    */
   async function searchComments(query, options = {}) {
     const queryLower = String(query || '')
       .trim()
       .toLowerCase();
-    if (!queryLower) return { results: [], total: 0, hasMore: false };
+    if (!queryLower) {
+      return { results: [], total: 0, hasMore: false, truncated: false };
+    }
 
     const limit = Math.max(1, Number(options.limit) || 200);
     const offset = Math.max(0, Number(options.offset) || 0);
     const postId = options.postId ? String(options.postId) : '';
+    // One extra match is enough to know that another page exists.
+    const needed = offset + limit + 1;
     const db = await openDb();
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_COMMENTS, 'readonly');
       const store = tx.objectStore(STORE_COMMENTS);
       const matches = [];
-      let total = 0;
 
-      const finish = () => {
+      const finish = (truncated) => {
         matches.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         const results = matches.slice(offset, offset + limit);
         resolve({
           results,
-          total,
-          hasMore: total > offset + results.length,
+          total: matches.length,
+          hasMore: truncated || matches.length > offset + results.length,
+          truncated,
         });
       };
 
       const consumeCursor = (cursor) => {
         if (!cursor) {
-          finish();
+          finish(false);
           return;
         }
 
         const comment = cursor.value;
-        if ((!postId || comment.postId === postId) && matchesQuery(comment, queryLower)) {
-          total += 1;
-          if (matches.length < offset + limit) {
-            matches.push(comment);
+        if (
+          (!postId || comment.postId === postId) &&
+          matchesQuery(comment, queryLower)
+        ) {
+          matches.push(comment);
+          if (matches.length >= needed) {
+            finish(true);
+            return;
           }
         }
 
@@ -580,6 +619,7 @@
     countCommentsByPost,
     getTopicSize,
     getLogicalSize,
+    normalizeUrl,
     deleteTopic,
     clearAll,
     searchComments,

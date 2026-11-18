@@ -27,8 +27,18 @@ describe('forum indexer', () => {
   let topic;
   let metadata;
   let fetchMock;
+  const messageListeners = [];
 
   beforeAll(() => {
+    global.chrome = {
+      runtime: {
+        onMessage: {
+          addListener: (listener) => {
+            messageListeners.push(listener);
+          },
+        },
+      },
+    };
     comments = [];
     topic = null;
     metadata = {};
@@ -117,5 +127,27 @@ describe('forum indexer', () => {
     expect(topic).toEqual(topicBefore);
     expect(LSForumStorage.putComments).not.toHaveBeenCalled();
     expect(LSForumStorage.putTopic).not.toHaveBeenCalled();
+  });
+
+  test('answers a ping so a restarted service worker can verify the job', () => {
+    require('../forum-indexer');
+
+    const [listener] = messageListeners;
+    expect(typeof listener).toBe('function');
+
+    let response = null;
+    listener(
+      { target: 'offscreen', action: 'pingForumIndex', jobId: 'job-1' },
+      {},
+      (value) => {
+        response = value;
+      },
+    );
+
+    expect(response).toEqual({ running: false, jobId: null });
+  });
+
+  afterAll(() => {
+    delete global.chrome;
   });
 });

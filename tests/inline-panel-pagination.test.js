@@ -206,3 +206,123 @@ describe('resolveMessageTarget', () => {
     expect(target).toBe('http://localhost/users/my_talks/999/page2/#msg_6');
   });
 });
+
+describe('resolveMessageTarget batching', () => {
+  const originalXHR = window.XMLHttpRequest;
+  const originalPath = window.location.pathname;
+  const talkId = '777';
+  const base = `http://localhost/users/my_talks/${talkId}/`;
+
+  afterEach(() => {
+    window.XMLHttpRequest = originalXHR;
+    global.XMLHttpRequest = originalXHR;
+    window.history.replaceState({}, '', originalPath);
+  });
+
+  function installMockXhr(pages, counters) {
+    class MockXHR {
+      open(method, url) {
+        this.url = url;
+      }
+
+      send() {
+        counters.requested.push(this.url);
+        counters.inFlight += 1;
+        counters.maxInFlight = Math.max(counters.maxInFlight, counters.inFlight);
+
+        setTimeout(() => {
+          counters.inFlight -= 1;
+          this.status = pages[this.url] ? 200 : 404;
+          this.responseText = pages[this.url] || '';
+          this.onload();
+        }, 0);
+      }
+    }
+
+    window.XMLHttpRequest = MockXHR;
+    global.XMLHttpRequest = MockXHR;
+  }
+
+  test('finds a message deep in a long dialog without crawling page by page', async () => {
+    window.history.replaceState({}, '', '/users/my_talks/');
+    const totalPages = 30;
+    const targetPage = 25;
+    const pages = {
+      [base]: pageHtml([messageHtml(1000, 'start')], totalPages, talkId),
+    };
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      pages[`${base}page${page}/`] = pageHtml([
+        messageHtml(2000 + page, page === targetPage ? 'target' : `page ${page}`),
+      ]);
+    }
+
+    const counters = { requested: [], inFlight: 0, maxInFlight: 0 };
+    installMockXhr(pages, counters);
+
+    const target = await resolveMessageTarget({
+      talkId,
+      text: 'target',
+      partner: 'partner',
+      timestamp: null,
+    });
+
+    expect(target).toBe(`${base}page${targetPage}/#msg_${2000 + targetPage}`);
+    // Pages are fetched in parallel batches, not one request at a time.
+    expect(counters.maxInFlight).toBeGreaterThan(1);
+    expect(counters.maxInFlight).toBeLessThanOrEqual(10);
+    // Base page plus the three batches up to the page with the message.
+    expect(counters.requested).toHaveLength(1 + totalPages);
+  });
+
+  test('does not start another batch after an empty page ends the dialog', async () => {
+    window.history.replaceState({}, '', '/users/my_talks/');
+    const linkedPages = 40;
+    const pages = {
+      [base]: pageHtml([messageHtml(1000, 'start')], linkedPages, talkId),
+    };
+
+    for (let page = 1; page <= linkedPages; page += 1) {
+      pages[`${base}page${page}/`] = page > 3 ? pageHtml([]) : pageHtml([messageHtml(3000 + page, `text ${page}`)]);
+    }
+
+    const counters = { requested: [], inFlight: 0, maxInFlight: 0 };
+    installMockXhr(pages, counters);
+
+    const target = await resolveMessageTarget({
+      talkId,
+      text: 'missing message',
+      partner: 'partner',
+      timestamp: null,
+    });
+
+    // Only the first batch was requested: page 4 was already empty.
+    expect(counters.requested).toHaveLength(1 + 10);
+    expect(target).toBe(base);
+  });
+
+  test('stops after the page cap instead of walking the whole dialog', async () => {
+    window.history.replaceState({}, '', '/users/my_talks/');
+    const linkedPages = 150;
+    const pages = {
+      [base]: pageHtml([messageHtml(1000, 'start')], linkedPages, talkId),
+    };
+
+    for (let page = 1; page <= linkedPages; page += 1) {
+      pages[`${base}page${page}/`] = pageHtml([messageHtml(4000 + page, `text ${page}`)]);
+    }
+
+    const counters = { requested: [], inFlight: 0, maxInFlight: 0 };
+    installMockXhr(pages, counters);
+
+    const target = await resolveMessageTarget({
+      talkId,
+      text: 'missing message',
+      partner: 'partner',
+      timestamp: null,
+    });
+
+    expect(counters.requested).toHaveLength(1 + 100);
+    expect(target).toBe(base);
+  });
+});
