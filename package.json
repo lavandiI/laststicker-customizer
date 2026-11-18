@@ -16,7 +16,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "test": "jest",
-    "package": "node scripts/package.js"
+    "package": "node scripts/package.js",
+    "publish:store": "node scripts/publish-store.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
